@@ -43,8 +43,8 @@ now_if_args(function()
   Config.on_packchanged('nvim-treesitter', { 'update' }, ts_update, ':TSUpdate')
 
   add({
-    'https://github.com/nvim-treesitter/nvim-treesitter',
-    'https://github.com/nvim-treesitter/nvim-treesitter-textobjects',
+    Config.gh '/nvim-treesitter/nvim-treesitter',
+    Config.gh '/nvim-treesitter/nvim-treesitter-textobjects',
   })
 
   -- Define languages which will have parsers installed and auto enabled
@@ -97,7 +97,7 @@ end)
 -- Troubleshooting:
 -- - Run `:checkhealth vim.lsp` to see potential issues.
 now_if_args(function()
-  add({ 'https://github.com/neovim/nvim-lspconfig' })
+  add({ Config.gh '/neovim/nvim-lspconfig' })
 
   -- Use `:h vim.lsp.enable()` to automatically enable language server based on
   -- the rules provided by 'nvim-lspconfig'.
@@ -117,7 +117,7 @@ end)
 -- The 'stevearc/conform.nvim' plugin is a good and maintained solution for easier
 -- formatting setup.
 later(function()
-  add({ 'https://github.com/stevearc/conform.nvim' })
+  add({ Config.gh '/stevearc/conform.nvim' })
 
   -- See also:
   -- - `:h Conform`
@@ -143,7 +143,7 @@ end)
 -- snippet files. They are organized in 'snippets/' directory (mostly) per language.
 -- 'mini.snippets' is designed to work with it as seamlessly as possible.
 -- See `:h MiniSnippets.gen_loader.from_lang()`.
-later(function() add({ 'https://github.com/rafamadriz/friendly-snippets' }) end)
+later(function() add({ Config.gh '/rafamadriz/friendly-snippets' }) end)
 
 -- Honorable mentions =========================================================
 

@@ -19,6 +19,37 @@ end
 nmap('[p', '<Cmd>exe "iput! " . v:register<CR>', 'Paste Above')
 nmap(']p', '<Cmd>exe "iput "  . v:register<CR>', 'Paste Below')
 
+
+-- OVERRIDES =====================
+-- Clear highlights on search when pressing <Esc> in normal mode
+--  See `:help hlsearch`
+nmap('<Esc>', '<cmd>nohlsearch<CR>')
+
+-- Overwrite paste by deleting selection into blackhole register and pasting from
+--   unnamed register
+vim.keymap.set('x', '<leader>p', [["_dP]])
+
+-- deleting text/selection into blackhole register
+--    this is to avoid overwriting the contents of the default copy/paste register
+vim.keymap.set({ 'n', 'v' }, '<C-D>', [["_d]])
+
+-- Execute current lua source file
+nmap('<leader><leader>', function() vim.cmd 'so' end, 'Execute current lua source file')
+
+-- Keybinds to cycle through the buffers
+nmap('<Tab>', ':bnext<CR>', 'Next buffer')
+nmap('<S-Tab>', ':bprev<CR>', 'Previous buffer')
+
+--- Neovide specific setting - neovide used in viewing scrollback of ghostty
+if vim.g.neovide then
+  -- Press 'q' to quit Neovide quickly when viewing scrollback
+  vim.keymap.set('n', 'q', ':qa!<CR>', { silent = true })
+
+  -- Set font-family and size
+  -- vim.o.guifont = 'FiraMono Nerd Font:h18'
+end
+-- END OVERRDIES =================
+
 -- Many general mappings are created by 'mini.basics'. See 'plugin/30_mini.lua'
 
 -- stylua: ignore start

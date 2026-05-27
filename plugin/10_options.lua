@@ -92,6 +92,34 @@ vim.o.complete        = '.,w,b,kspell'                  -- Use less sources
 vim.o.completeopt     = 'menuone,noselect,fuzzy,nosort' -- Use custom behavior
 vim.o.completetimeout = 100                             -- Limit sources delay
 
+-- OVERRIDES =====================
+-- Preview substitutions live, as you type!
+vim.o.inccommand = 'split'
+
+-- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
+-- instead raise a dialog asking if you wish to save the current file(s)
+-- See `:help 'confirm'`
+vim.o.confirm = true
+
+--- Filetype add
+vim.filetype.add {
+  extension = {
+    zsh = 'zsh',
+  },
+  filename = {
+    ['.zshrc'] = 'zsh',
+    ['.zshenv'] = 'zsh',
+    ['.zprofile'] = 'zsh',
+  },
+}
+
+vim.filetype.add {
+  extension = {
+    mobileconfig = 'xml',
+  },
+}
+-- END OVERRDIES =================
+
 -- Autocommands ===============================================================
 
 -- Don't auto-wrap comments and don't insert comment leader after hitting 'o'.

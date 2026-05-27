@@ -65,10 +65,14 @@
 -- It is a global variable which can be use both as `_G.Config` and `Config`
 _G.Config = {}
 
+-- OVERRIDE ===================
+Config.gh = function(repo) return 'https://github.com' .. repo end
+-- END OVERRIDE ===============
+
 -- 'mini.nvim' - all-in-one plugin powering most MiniMax features.
 -- See 'plugin/30_mini.lua' for how it is used.
 -- Load now to have 'mini.misc' available for custom loading helpers.
-vim.pack.add({ 'https://github.com/nvim-mini/mini.nvim' })
+vim.pack.add({ Config.gh '/nvim-mini/mini.nvim' })
 
 -- Loading helpers used to organize config into fail-safe parts. Example usage:
 -- - `now` - execute immediately. Use for what must be executed during startup.
