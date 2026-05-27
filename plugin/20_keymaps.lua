@@ -40,6 +40,9 @@ nmap('<leader><leader>', function() vim.cmd 'so' end, 'Execute current lua sourc
 nmap('<Tab>', ':bnext<CR>', 'Next buffer')
 nmap('<S-Tab>', ':bprev<CR>', 'Previous buffer')
 
+-- Search keymaps
+nmap('<leader>sk', function() MiniExtra.pickers.keymaps() end, '[S]earch [K]eymaps')
+
 --- Neovide specific setting - neovide used in viewing scrollback of ghostty
 if vim.g.neovide then
   -- Press 'q' to quit Neovide quickly when viewing scrollback
