@@ -732,6 +732,14 @@ later(function()
       -- Load from 'snippets/' directory of plugins, like 'friendly-snippets'
       snippets.gen_loader.from_lang({ lang_patterns = lang_patterns }),
     },
+
+    -- OVERRIDE
+    mappings = {
+      expand = '<C-f>',    -- Ctrl + f to go forward
+      jump_next = '<C-f>',
+      jump_prev = '<C-b>', -- Ctrl + b to go backward
+    },
+    -- END OVERRIDE
   })
 
   -- By default snippets available at cursor are not shown as candidates in
