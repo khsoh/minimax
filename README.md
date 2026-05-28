@@ -16,6 +16,6 @@ The setup is simple - clone to `$HOME/.config/nvim` folder and then execute:
 Alternatively, if you still wish to preserve the earlier nvim setup, then clone to `$HOME/.config/minimax` folder and then execute:
 
 ```
-    NVIM_APPNAME=$HOME/.config/minimax nvim --headless "+lua vim.pack.update(nil, { force=true} )" "+MasonUpdate" "+MasonToolsUpdateSync" "+qa"
+    NVIM_APPNAME=minimax nvim --headless "+lua vim.pack.update(nil, { force=true} )" "+MasonUpdate" "+MasonToolsUpdateSync" "+qa"
 ```
 
