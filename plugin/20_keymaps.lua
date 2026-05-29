@@ -40,9 +40,6 @@ nmap('<leader><leader>', function() vim.cmd 'so' end, 'Execute current lua sourc
 nmap('<Tab>', ':bnext<CR>', 'Next buffer')
 nmap('<S-Tab>', ':bprev<CR>', 'Previous buffer')
 
--- Search keymaps
-nmap('<leader>sk', function() MiniExtra.pickers.keymaps() end, '[S]earch [K]eymaps')
-
 --- Neovide specific setting - neovide used in viewing scrollback of ghostty
 if vim.g.neovide then
   -- Press 'q' to quit Neovide quickly when viewing scrollback
@@ -178,6 +175,7 @@ nmap_leader('fg', '<Cmd>Pick grep_live<CR>',                    'Grep live')
 nmap_leader('fG', '<Cmd>Pick grep pattern="<cword>"<CR>',       'Grep current word')
 nmap_leader('fh', '<Cmd>Pick help<CR>',                         'Help tags')
 nmap_leader('fH', '<Cmd>Pick hl_groups<CR>',                    'Highlight groups')
+nmap_leader('fk', '<Cmd>Pick keymaps<CR>',                      'Keymaps')
 nmap_leader('fl', '<Cmd>Pick buf_lines scope="all"<CR>',        'Lines (all)')
 nmap_leader('fL', '<Cmd>Pick buf_lines scope="current"<CR>',    'Lines (buf)')
 nmap_leader('fm', '<Cmd>Pick git_hunks<CR>',                    'Modified hunks (all)')
