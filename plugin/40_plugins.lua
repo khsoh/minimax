@@ -160,17 +160,9 @@ now_if_args(function()
 
     stylua = {}, -- Used to format Lua code
 
-    ["lua-language-server"] = {},
+    nixd = {},
 
-    -- Managed by Nix (nix-darwin)
-    nixd = {
-      is_system_binary = true, -- Custom flag
-      settings = {
-        nixd = {
-          nixpkgs = { expr = "import <nixpkgs> { }" },
-        },
-      },
-    },
+    ["lua-language-server"] = {},
 
     ["eslint-lsp"] = {},
     ["eslint_d"] = {},
@@ -192,7 +184,7 @@ now_if_args(function()
   -- You can press `g?` for help in this menu.
   -- Only ask Mason to install servers that aren't marked as system binaries
   local ensure_installed = vim.tbl_filter(function(key)
-    return not (servers[key] and servers[key].is_system_binary)
+    return not (servers[key])
   end, vim.tbl_keys(servers or {}))
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
@@ -205,12 +197,10 @@ now_if_args(function()
   for name, server in pairs(servers) do
     local lsp_name = name
 
-    -- Only try to query Mason if it's not a system binary
-    if not server.is_system_binary then
-      local p_status, p = pcall(registry.get_package, name)
-      if p_status and p and p.spec and p.spec.neovim then
-        lsp_name = p.spec.neovim.lspconfig or name
-      end
+    -- Query Mason to get package
+    local p_status, p = pcall(registry.get_package, name)
+    if p_status and p and p.spec and p.spec.neovim then
+      lsp_name = p.spec.neovim.lspconfig or name
     end
 
     vim.lsp.config(lsp_name, server)
