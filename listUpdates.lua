@@ -1,6 +1,7 @@
 -- listUpdates.lua
 
-print("Checking for upstream repository updates...")
+-- Write to stderr stream
+io.stderr:write("Checking for upstream repository updates...\n")
 
 local status, packages = pcall(vim.pack.get, nil, { offline = false })
 
@@ -24,13 +25,12 @@ end
 
 -- 2. Only print the header and the items if the table is NOT empty
 if #update_lines > 0 then
-  print("\n--- Plugins with Updates Available ---")
+  print("--- Plugins with Updates Available ---")
   for _, line in ipairs(update_lines) do
     print(line)
   end
-  print("--------------------------------------\n")
 else
-  print("Everything is up to date!")
+  io.stderr:write("Everything is up to date!\n")
 end
 
 -- Exit headless instance cleanly
