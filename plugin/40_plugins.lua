@@ -60,9 +60,9 @@ now_if_args(function()
     -- OVERRIDES ======================
     -- 'bash',
     "c",
-    "diff",
-    "html",
-    "luadoc",
+    -- "diff",
+    -- "html",
+    -- "luadoc",
     "markdown_inline",
     "vim",
     -- END OVERRIDES ==================
@@ -160,8 +160,6 @@ now_if_args(function()
 
     stylua = {}, -- Used to format Lua code
 
-    nixd = {},
-
     ["lua-language-server"] = {},
 
     ["eslint-lsp"] = {},
@@ -182,15 +180,14 @@ now_if_args(function()
   --    :Mason
   --
   -- You can press `g?` for help in this menu.
-  -- Only ask Mason to install servers that aren't marked as system binaries
-  local ensure_installed = vim.tbl_filter(function(key)
-    return not (servers[key])
-  end, vim.tbl_keys(servers or {}))
+  -- Only ask Mason to install servers that are present in registry
+  local ensure_installed = vim.tbl_keys(servers or {})
+  require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
+    nixd = {}
   })
 
-  require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
   local registry = require("mason-registry")
 
