@@ -37,60 +37,92 @@ local now_if_args, later = Config.now_if_args, Config.later
 --   `vimdoc`, `markdown`, etc.), manually install them via 'nvim-treesitter'
 --   with `:TSInstall <language>`. Be sure to have necessary system dependencies
 --   (see MiniMax README section for software requirements).
+-- now_if_args(function()
+--   -- Define hook to update tree-sitter parsers after plugin is updated
+--   local ts_update = function()
+--     vim.cmd("TSUpdate")
+--   end
+--   Config.on_packchanged("nvim-treesitter", { "update" }, ts_update, ":TSUpdate")
+--
+--   add({
+--     Config.gh("nvim-treesitter/nvim-treesitter"),
+--     Config.gh("nvim-treesitter/nvim-treesitter-textobjects"),
+--   })
+--
+--   -- Define languages which will have parsers installed and auto enabled
+--   -- After changing this, restart Neovim once to install necessary parsers. Wait
+--   -- for the installation to finish before opening a file for added language(s).
+--   local languages = {
+--     -- These are already pre-installed with Neovim. Used as an example.
+--     "lua",
+--     "vimdoc",
+--     "markdown",
+--     -- OVERRIDES ======================
+--     -- 'bash',
+--     "c",
+--     -- "diff",
+--     -- "html",
+--     -- "luadoc",
+--     "markdown_inline",
+--     "vim",
+--     -- END OVERRIDES ==================
+--     -- Add here more languages with which you want to use tree-sitter
+--     -- To see available languages:
+--     -- - Execute `:=require('nvim-treesitter').get_available()`
+--     -- - Visit 'SUPPORTED_LANGUAGES.md' file at
+--     --   https://github.com/nvim-treesitter/nvim-treesitter/blob/main
+--   }
+--   local isnt_installed = function(lang)
+--     return #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0
+--   end
+--   local to_install = vim.tbl_filter(isnt_installed, languages)
+--   if #to_install > 0 then
+--     require("nvim-treesitter").install(to_install)
+--   end
+--
+--   -- Enable tree-sitter after opening a file for a target language
+--   local filetypes = {}
+--   for _, lang in ipairs(languages) do
+--     for _, ft in ipairs(vim.treesitter.language.get_filetypes(lang)) do
+--       table.insert(filetypes, ft)
+--     end
+--   end
+--   local ts_start = function(ev)
+--     vim.treesitter.start(ev.buf)
+--   end
+--   Config.new_autocmd("FileType", filetypes, ts_start, "Start tree-sitter")
+-- end)
 now_if_args(function()
-  -- Define hook to update tree-sitter parsers after plugin is updated
-  local ts_update = function()
-    vim.cmd("TSUpdate")
-  end
-  Config.on_packchanged("nvim-treesitter", { "update" }, ts_update, ":TSUpdate")
+  -- 1. UNIFIED NATIVE TREESITTER SETTINGS
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "*",
+    callback = function(event)
+      local lang = vim.treesitter.language.get_lang(event.match) or event.match
+      if not lang or lang == "" then return end
 
-  add({
-    Config.gh("nvim-treesitter/nvim-treesitter"),
-    Config.gh("nvim-treesitter/nvim-treesitter-textobjects"),
+      if vim.treesitter.query.get(lang, "highlights") then
+        pcall(vim.treesitter.start, event.buf, lang)
+
+        vim.bo.indentexpr = "v:lua.vim.treesitter.indentexpr()"
+        vim.wo.foldmethod = "expr"
+        vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+        vim.wo.foldenable = false
+      end
+    end,
   })
 
-  -- Define languages which will have parsers installed and auto enabled
-  -- After changing this, restart Neovim once to install necessary parsers. Wait
-  -- for the installation to finish before opening a file for added language(s).
-  local languages = {
-    -- These are already pre-installed with Neovim. Used as an example.
-    "lua",
-    "vimdoc",
-    "markdown",
-    -- OVERRIDES ======================
-    -- 'bash',
-    "c",
-    -- "diff",
-    -- "html",
-    -- "luadoc",
-    "markdown_inline",
-    "vim",
-    -- END OVERRIDES ==================
-    -- Add here more languages with which you want to use tree-sitter
-    -- To see available languages:
-    -- - Execute `:=require('nvim-treesitter').get_available()`
-    -- - Visit 'SUPPORTED_LANGUAGES.md' file at
-    --   https://github.com/nvim-treesitter/nvim-treesitter/blob/main
-  }
-  local isnt_installed = function(lang)
-    return #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0
-  end
-  local to_install = vim.tbl_filter(isnt_installed, languages)
-  if #to_install > 0 then
-    require("nvim-treesitter").install(to_install)
-  end
+  -- 2. INCREMENTAL SELECTION KEYMAPS (Overriding mini.ai Visual Mode Blocks)
+  vim.keymap.set('n', '<CR>', function()
+    vim.treesitter.incremental_selection.init()
+  end, { desc = 'Init treesitter selection' })
 
-  -- Enable tree-sitter after opening a file for a target language
-  local filetypes = {}
-  for _, lang in ipairs(languages) do
-    for _, ft in ipairs(vim.treesitter.language.get_filetypes(lang)) do
-      table.insert(filetypes, ft)
-    end
-  end
-  local ts_start = function(ev)
-    vim.treesitter.start(ev.buf)
-  end
-  Config.new_autocmd("FileType", filetypes, ts_start, "Start tree-sitter")
+  vim.keymap.set('x', '<CR>', function()
+    vim.treesitter.incremental_selection.node_incremental()
+  end, { desc = 'Increment selection' })
+
+  vim.keymap.set('x', '<BS>', function()
+    vim.treesitter.incremental_selection.node_decremental()
+  end, { desc = 'Decrement selection' })
 end)
 
 -- Language servers ===========================================================
