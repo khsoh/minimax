@@ -315,6 +315,9 @@ later(function()
     -- for next (`an`/`in`) or last (`al`/`il`).
     -- Try this. If you don't like it - delete next line and this comment.
     search_method = 'cover',
+
+    -- Number of lines within which textobject is searched
+    n_lines = 200,
   })
 end)
 

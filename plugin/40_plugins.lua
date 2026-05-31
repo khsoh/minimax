@@ -218,7 +218,7 @@ now_if_args(function()
 
   -- Add other LSPs that are NOT installed by mason-tool-installer
   --   but have to be configured and enabled by vim.lsp
-  vim.list_extend(ensure_installed, {
+  servers = vim.tbl_deep_extend("force", servers, {
     nixd = {}
   })
 
