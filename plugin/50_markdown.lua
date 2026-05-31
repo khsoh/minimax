@@ -12,8 +12,8 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.g.mkdp_auto_start = 0
 
     -- Set the keymap locally strictly for this buffer
-    vim.keymap.set('n', '<leader>mp', '<cmd>MarkdownPreviewToggle<cr>', {
-      desc = '[M]arkdown [P]review',
+    vim.keymap.set('n', '<leader>bp', '<cmd>MarkdownPreviewToggle<cr>', {
+      desc = 'Preview markdown',
       buffer = true, -- Attaches ONLY to active markdown files
     })
   end,
