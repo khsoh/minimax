@@ -322,8 +322,14 @@ now_if_args(function()
   add({ Config.gh("romus204/tree-sitter-manager.nvim") })
   require('tree-sitter-manager').setup({
     -- Automatically build and installs the relevant binaries to parse syntax
-    -- These are NOT the LSP
-    ensure_installed = { },
+    -- These are syntax parsers NOT LSPs
+    ensure_installed = {
+      "nix",
+      "lua",
+      "bash",
+      "zsh",
+      "javascript",
+    },
     auto_install = true,
   })
 end)
