@@ -93,6 +93,7 @@ local now_if_args, later = Config.now_if_args, Config.later
 --   Config.new_autocmd("FileType", filetypes, ts_start, "Start tree-sitter")
 -- end)
 now_if_args(function()
+  add({ Config.gh("nvim-treesitter/nvim-treesitter-textobjects") })
   -- 1. UNIFIED NATIVE TREESITTER SETTINGS
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "*",
@@ -310,6 +311,21 @@ end)
 -- See `:h MiniSnippets.gen_loader.from_lang()`.
 later(function()
   add({ Config.gh("rafamadriz/friendly-snippets") })
+end)
+
+
+-- tree-sitter-manager =========================================================
+
+-- 'romus204/tree-sitter-manager.nvim' is a lightweight Tree-sitter manager for
+-- Neovim.
+now_if_args(function()
+  add({ Config.gh("romus204/tree-sitter-manager.nvim") })
+  require('tree-sitter-manager').setup({
+    -- Automatically build and installs the relevant binaries to parse syntax
+    -- These are NOT the LSP
+    ensure_installed = { },
+    auto_install = true,
+  })
 end)
 
 -- Honorable mentions =========================================================

@@ -305,7 +305,7 @@ later(function()
       o = ai.gen_spec.treesitter({
         a = { '@conditional.outer', '@loop.outer' },
         i = { '@conditional.inner', '@loop.inner' },
-      }),
+      }, { use_nvim_treesitter = true }),
     },
 
     -- 'mini.ai' by default mostly mimics built-in search behavior: first try
@@ -314,7 +314,7 @@ later(function()
     -- always try to search only covering textobject and explicitly ask to search
     -- for next (`an`/`in`) or last (`al`/`il`).
     -- Try this. If you don't like it - delete next line and this comment.
-    search_method = 'cover',
+    search_method = 'cover_or_next',
 
     -- Number of lines within which textobject is searched
     n_lines = 200,
