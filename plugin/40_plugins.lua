@@ -31,80 +31,45 @@ local now_if_args, later = Config.now_if_args, Config.later
 --
 -- Add these plugins now if file (and not 'mini.starter') is shown after startup.
 --
+-- tree-sitter-manager is a tool to help manage the installation of language
+-- syntax parsers to enhance the capabilities of tree-sitter
+--
 -- Troubleshooting:
 -- - Run `:checkhealth vim.treesitter nvim-treesitter` to see potential issues.
 -- - In case of errors related to queries for Neovim bundled parsers (like `lua`,
 --   `vimdoc`, `markdown`, etc.), manually install them via 'nvim-treesitter'
 --   with `:TSInstall <language>`. Be sure to have necessary system dependencies
 --   (see MiniMax README section for software requirements).
--- now_if_args(function()
---   -- Define hook to update tree-sitter parsers after plugin is updated
---   local ts_update = function()
---     vim.cmd("TSUpdate")
---   end
---   Config.on_packchanged("nvim-treesitter", { "update" }, ts_update, ":TSUpdate")
---
---   add({
---     Config.gh("nvim-treesitter/nvim-treesitter"),
---     Config.gh("nvim-treesitter/nvim-treesitter-textobjects"),
---   })
---
---   -- Define languages which will have parsers installed and auto enabled
---   -- After changing this, restart Neovim once to install necessary parsers. Wait
---   -- for the installation to finish before opening a file for added language(s).
---   local languages = {
---     -- These are already pre-installed with Neovim. Used as an example.
---     "lua",
---     "vimdoc",
---     "markdown",
---     -- OVERRIDES ======================
---     -- 'bash',
---     "c",
---     -- "diff",
---     -- "html",
---     -- "luadoc",
---     "markdown_inline",
---     "vim",
---     -- END OVERRIDES ==================
---     -- Add here more languages with which you want to use tree-sitter
---     -- To see available languages:
---     -- - Execute `:=require('nvim-treesitter').get_available()`
---     -- - Visit 'SUPPORTED_LANGUAGES.md' file at
---     --   https://github.com/nvim-treesitter/nvim-treesitter/blob/main
---   }
---   local isnt_installed = function(lang)
---     return #vim.api.nvim_get_runtime_file("parser/" .. lang .. ".*", false) == 0
---   end
---   local to_install = vim.tbl_filter(isnt_installed, languages)
---   if #to_install > 0 then
---     require("nvim-treesitter").install(to_install)
---   end
---
---   -- Enable tree-sitter after opening a file for a target language
---   local filetypes = {}
---   for _, lang in ipairs(languages) do
---     for _, ft in ipairs(vim.treesitter.language.get_filetypes(lang)) do
---       table.insert(filetypes, ft)
---     end
---   end
---   local ts_start = function(ev)
---     vim.treesitter.start(ev.buf)
---   end
---   Config.new_autocmd("FileType", filetypes, ts_start, "Start tree-sitter")
--- end)
 now_if_args(function()
-  add({ Config.gh("nvim-treesitter/nvim-treesitter-textobjects") })
+  add({
+    Config.gh("nvim-treesitter/nvim-treesitter-textobjects"),
+    Config.gh("romus204/tree-sitter-manager.nvim"),
+  })
+  require("tree-sitter-manager").setup({
+    -- Automatically build and installs the relevant binaries to parse syntax
+    -- These are syntax parsers NOT LSPs
+    ensure_installed = {
+      "nix",
+      "lua",
+      "bash",
+      "zsh",
+      "javascript",
+    },
+    auto_install = true,
+  })
   -- 1. UNIFIED NATIVE TREESITTER SETTINGS
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "*",
     callback = function(event)
       local lang = vim.treesitter.language.get_lang(event.match) or event.match
-      if not lang or lang == "" then return end
+      if not lang or lang == "" then
+        return
+      end
 
       if vim.treesitter.query.get(lang, "highlights") then
+        -- Start fast syntax highlighting
         pcall(vim.treesitter.start, event.buf, lang)
 
-        vim.bo.indentexpr = "v:lua.vim.treesitter.indentexpr()"
         vim.wo.foldmethod = "expr"
         vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
         vim.wo.foldenable = false
@@ -113,21 +78,23 @@ now_if_args(function()
   })
 
   -- 2. INCREMENTAL SELECTION KEYMAPS (Overriding mini.ai Visual Mode Blocks)
-  vim.keymap.set('n', '<CR>', function()
+  vim.keymap.set("n", "<CR>", function()
     vim.treesitter.incremental_selection.init()
-  end, { desc = 'Init treesitter selection' })
+  end, { desc = "Init treesitter selection" })
 
-  vim.keymap.set('x', '<CR>', function()
+  vim.keymap.set("x", "<CR>", function()
     vim.treesitter.incremental_selection.node_incremental()
-  end, { desc = 'Increment selection' })
+  end, { desc = "Increment selection" })
 
-  vim.keymap.set('x', '<BS>', function()
+  vim.keymap.set("x", "<BS>", function()
     vim.treesitter.incremental_selection.node_decremental()
-  end, { desc = 'Decrement selection' })
+  end, { desc = "Decrement selection" })
 end)
 
--- Language servers ===========================================================
-
+-- Language tools =============================================================
+--
+-- Support for LSPs, Linters and Formatters
+--
 -- Language Server Protocol (LSP) is a set of conventions that power creation of
 -- language specific tools. It requires two parts:
 -- - Server - program that performs language specific computations.
@@ -144,159 +111,154 @@ end)
 --
 -- Troubleshooting:
 -- - Run `:checkhealth vim.lsp` to see potential issues.
-now_if_args(function()
-  add({
-    Config.gh("neovim/nvim-lspconfig"),
-    Config.gh("mason-org/mason.nvim"),
-    Config.gh("mason-org/mason-lspconfig.nvim"),
-    Config.gh("WhoIsSethDaniel/mason-tool-installer.nvim"),
-  })
-
-  -- Enable the following language servers
-  --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
-  --  See `:help lsp-config` for information about keys and how to configure
-  ---@type table<string, vim.lsp.Config>
-  -- NOTE: Enclose the language server name in [ ] if it includes a '-' character
-  local servers = {
-    clangd = {},
-    gopls = {},
-    pyright = {},
-    ["rust-analyzer"] = {},
-    ["bash-language-server"] = {
-      cmd = { "bash-language-server", "start" },
-      filetypes = { "sh", "bash", "zsh" },
-      root_markers = { ".git" },
-    },
-    -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-    --
-    -- Some languages (like typescript) have entire language plugins that can be useful:
-    --    https://github.com/pmizio/typescript-tools.nvim
-    --
-    -- But for many setups, the LSP (`ts_ls`) will work just fine
-    ["html-lsp"] = { filetypes = { "html", "twig", "hbs" } },
-    marksman = {},
-    ["powershell-editor-services"] = {
-      bundle_path = vim.fn.stdpath("data") .. "/mason/packages/powershell-editor-services",
-      settings = { powershell = { codeFormatting = { Preset = "OTBS" } } },
-    },
-    biome = {},
-    zls = {},
-    ["tree-sitter-cli"] = {},
-
-    ["typescript-language-server"] = {
-      cmd = { "typescript-language-server", "--stdio" },
-      -- root_markers is the new standard in 0.11+ replacing root_dir
-      root_markers = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
-      -- Optional: add filetypes if you want to be explicit
-      filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
-    },
-
-    stylua = {}, -- Used to format Lua code
-
-    ["lua-language-server"] = {},
-
-    ["eslint-lsp"] = {},
-    ["eslint_d"] = {},
-    ["prettierd"] = {},
-    lemminx = {
-      filetypes = { "xml", "xsd", "xsl", "xslt", "svg", "mobileconfig" },
-    },
-  }
-
-  -- Automatically install LSPs and related tools to stdpath for Neovim
-  require("mason").setup({})
-
-  -- Ensure the servers and tools above are installed
-  --
-  -- To check the current status of installed tools and/or manually install
-  -- other tools, you can run
-  --    :Mason
-  --
-  -- You can press `g?` for help in this menu.
-  -- Only ask Mason to install servers that are present in registry
-  local ensure_installed = vim.tbl_keys(servers or {})
-  vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
-  })
-  require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
-
-  -- Add other LSPs that are NOT installed by mason-tool-installer
-  --   but have to be configured and enabled by vim.lsp
-  servers = vim.tbl_deep_extend("force", servers, {
-    nixd = {}
-  })
-
-
-  local registry = require("mason-registry")
-
-  for name, server in pairs(servers) do
-    local lsp_name = name
-
-    -- Query Mason to get package
-    local p_status, p = pcall(registry.get_package, name)
-    if p_status and p and p.spec and p.spec.neovim then
-      lsp_name = p.spec.neovim.lspconfig or name
-    end
-
-    vim.lsp.config(lsp_name, server)
-    vim.lsp.enable(lsp_name)
-  end
-  -- Use `:h vim.lsp.enable()` to automatically enable language server based on
-  -- the rules provided by 'nvim-lspconfig'.
-  -- Use `:h vim.lsp.config()` or 'after/lsp/' directory to configure servers.
-  -- Uncomment and tweak the following `vim.lsp.enable()` call to enable servers.
-  -- vim.lsp.enable({
-  --   -- For example, if `lua-language-server` is installed, use `'lua_ls'` entry
-  -- })
-end)
-
--- Formatting =================================================================
-
+--
 -- Programs dedicated to text formatting (a.k.a. formatters) are very useful.
 -- Neovim has built-in tools for text formatting (see `:h gq` and `:h 'formatprg'`).
 -- They can be used to configure external programs, but it might become tedious.
 --
 -- The 'stevearc/conform.nvim' plugin is a good and maintained solution for easier
 -- formatting setup.
-later(function()
-  add({ Config.gh("stevearc/conform.nvim") })
+--
+-- Linting support is provided via nvim-lint package
+--
 
-  -- See also:
-  -- - `:h Conform`
-  -- - `:h conform-options`
-  -- - `:h conform-formatters`
-  require("conform").setup({
-    notify_on_error = false,
-    format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
-      local enabled_filetypes = {
-        nix = true,
-        js = true,
-        lua = true,
-      }
-      if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
-      else
-        return nil
+now_if_args(function()
+  add({
+    Config.gh("neovim/nvim-lspconfig"),
+    Config.gh("mason-org/mason.nvim"),
+    Config.gh("mason-org/mason-lspconfig.nvim"),
+    Config.gh("WhoIsSethDaniel/mason-tool-installer.nvim"),
+    Config.gh("stevearc/conform.nvim"),
+    Config.gh("mfussenegger/nvim-lint"),
+  })
+
+  -- =============================================================================
+  -- 1. DEFINE PURE MASON TOOLS (No Nix tools here!)
+  -- =============================================================================
+  local mason_tools = {
+    "lua-language-server",
+    "typescript-language-server",
+    "stylua",
+    "shellcheck",
+    "clangd",
+    "gopls",
+    "pyright",
+    "rust-analyzer",
+    "bash-language-server",
+    "html-lsp",
+    "lemminx",
+    "marksman",
+    "powershell-editor-services",
+    "biome", -- LSP, Formatter and Linter for Javascript, TypeScript, JSON
+    "zls",
+  }
+
+  -- =============================================================================
+  -- 2. SETUP MASON & BINDINGS (Same loop logic as before)
+  -- =============================================================================
+  require("mason").setup()
+  require("mason-tool-installer").setup({ ensure_installed = mason_tools, auto_install = true })
+
+  local mason_registry = require("mason-registry")
+  local mason_lsp_config_names = {}
+  local formatters_by_ft = {}
+  local linters_by_ft = {}
+
+  for _, mason_name in ipairs(mason_tools) do
+    if mason_registry.has_package(mason_name) then
+      local p = mason_registry.get_package(mason_name)
+      local categories = p.spec.categories or {}
+      local languages = p.spec.languages or {}
+
+      -- 1. Check for LSP
+      if vim.tbl_contains(categories, "LSP") then
+        local lspconfig_key = mason_name
+        if p.spec and p.spec.neovim and p.spec.neovim.lspconfig then
+          lspconfig_key = p.spec.neovim.lspconfig
+        end
+        table.insert(mason_lsp_config_names, lspconfig_key)
       end
-    end,
+
+      -- 2. Check for Formatter
+      if vim.tbl_contains(categories, "Formatter") then
+        for _, lang in ipairs(languages) do
+          local ft = string.lower(lang)
+          -- Initialize the nested array safely if it doesn't exist yet
+          formatters_by_ft[ft] = formatters_by_ft[ft] or {}
+          -- Append the tool name instead of overwriting the whole table
+          table.insert(formatters_by_ft[ft], mason_name)
+        end
+      end
+
+      -- 3. Check for Linter
+      if vim.tbl_contains(categories, "Linter") then
+        for _, lang in ipairs(languages) do
+          local ft = string.lower(lang)
+          -- Initialize the nested array safely if it doesn't exist yet
+          linters_by_ft[ft] = linters_by_ft[ft] or {}
+          -- Append the tool name instead of overwriting the whole table
+          table.insert(linters_by_ft[ft], mason_name)
+        end
+      end
+    end
+  end
+
+  require("mason-lspconfig").setup({
+    ensure_installed = mason_lsp_config_names,
+    automatic_enable = true,
+  })
+
+  -- =============================================================================
+  -- 3. NIX-SPECIFIC ENVIRONMENT SETUP (Completely Independent)
+  -- =============================================================================
+
+  -- Setup nixd, telling it to handle formatting using your Nix-installed nixfmt
+  vim.lsp.enable("nixd")
+
+  -- Tell Conform to use your Nix-installed nixfmt for Nix files
+  formatters_by_ft["nix"] = { "nixfmt" }
+
+  --== DEBUG
+  -- vim.notify("LSPs: " .. vim.inspect(mason_lsp_config_names))
+  -- vim.notify("Formatters: " .. vim.inspect(formatters_by_ft))
+  -- vim.notify("Linters: " .. vim.inspect(linters_by_ft))
+
+  require("conform").setup({
+    formatters_by_ft = formatters_by_ft,
+    format_on_save = { timeout_ms = 500, lsp_fallback = true },
     default_format_opts = {
       -- Allow formatting from LSP server if no dedicated formatter is available
       lsp_format = "fallback",
     },
-    -- Map of filetype to formatters
-    -- Make sure that necessary CLI tool is available
-    formatters_by_ft = {
-      javascript = { "prettierd", stop_after_first = true },
-      nix = { "nixfmt" },
-      lua = { "stylua" },
-    },
     formatters = {
       stylua = {
         -- Pass CLI arguments to force spaces instead of tabs
-        args = { "--quote-style", "Preserve", "--indent-type", "Spaces", "--indent-width", "2", "-" },
+        args = { "--indent-type", "Spaces", "--indent-width", "2", "-" },
       },
     },
+  })
+
+  -- =============================================================================
+  -- 5. LINK NATIVE INDENTATION (=) TO CONFORM.NVIM
+  -- =============================================================================
+
+  -- Maps '=' in Visual/Selection mode to format just the selected block
+  vim.keymap.set("v", "=", function()
+    require("conform").format({ async = true, lsp_fallback = true })
+  end, { desc = "Format selected range via Conform" })
+
+  -- Maps '=' in Normal mode to format the entire active file
+  vim.keymap.set("n", "=", function()
+    require("conform").format({ async = true, lsp_fallback = true })
+  end, { desc = "Format current buffer via Conform" })
+
+  -- Setup Linters
+  local lint = require("lint")
+  lint.linters_by_ft = linters_by_ft
+  vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+    callback = function()
+      lint.try_lint()
+    end,
   })
 end)
 
@@ -311,27 +273,6 @@ end)
 -- See `:h MiniSnippets.gen_loader.from_lang()`.
 later(function()
   add({ Config.gh("rafamadriz/friendly-snippets") })
-end)
-
-
--- tree-sitter-manager =========================================================
-
--- 'romus204/tree-sitter-manager.nvim' is a lightweight Tree-sitter manager for
--- Neovim.
-now_if_args(function()
-  add({ Config.gh("romus204/tree-sitter-manager.nvim") })
-  require('tree-sitter-manager').setup({
-    -- Automatically build and installs the relevant binaries to parse syntax
-    -- These are syntax parsers NOT LSPs
-    ensure_installed = {
-      "nix",
-      "lua",
-      "bash",
-      "zsh",
-      "javascript",
-    },
-    auto_install = true,
-  })
 end)
 
 -- Honorable mentions =========================================================
