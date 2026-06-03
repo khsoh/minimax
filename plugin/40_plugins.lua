@@ -164,6 +164,14 @@ now_if_args(function()
   local formatters_by_ft = {}
   local linters_by_ft = {}
 
+  -- DEFINE YOUR SKIP FILTERS (Indexed by filetype)
+  -- Use this if multiple mason_tools are support a single language for same function
+  local skip_formatters_by_ft = {
+    lua = {},
+    typescript = {},
+  }
+  local skip_linters_by_ft = {}
+
   for _, mason_name in ipairs(mason_tools) do
     if mason_registry.has_package(mason_name) then
       local p = mason_registry.get_package(mason_name)
@@ -183,10 +191,36 @@ now_if_args(function()
       if vim.tbl_contains(categories, "Formatter") then
         for _, lang in ipairs(languages) do
           local ft = string.lower(lang)
-          -- Initialize the nested array safely if it doesn't exist yet
-          formatters_by_ft[ft] = formatters_by_ft[ft] or {}
-          -- Append the tool name instead of overwriting the whole table
-          table.insert(formatters_by_ft[ft], mason_name)
+
+          -- Check if this specific tool should be skipped for this filetype
+          local skipped_tools = skip_formatters_by_ft[ft] or {}
+          if vim.tbl_contains(skipped_tools, mason_name) then
+            -- Log a quiet print statement or notify to confirm it was skipped
+            -- print(string.format("[conform] Skipped matching %s for %s", mason_name, ft))
+          else
+            -- Check if another formatter already assigned for this language
+            if formatters_by_ft[ft] then
+              -- Create a readable string list of current formatters
+              local current_list = table.concat(formatters_by_ft[ft], ", ")
+
+              -- Trigger explicit notification warning snippet
+              vim.notify(
+                string.format(
+                  '"%s" added to [%s] for language "%s" (Multiple formatters active!)',
+                  mason_name,
+                  current_list,
+                  ft
+                ),
+                vim.log.levels.WARN,
+                { title = "conform multiple formatter warning" }
+              )
+            end
+
+            -- Initialize the nested array safely if it doesn't exist yet
+            formatters_by_ft[ft] = formatters_by_ft[ft] or {}
+            -- Append the tool name instead of overwriting the whole table
+            table.insert(formatters_by_ft[ft], mason_name)
+          end
         end
       end
 
@@ -194,10 +228,36 @@ now_if_args(function()
       if vim.tbl_contains(categories, "Linter") then
         for _, lang in ipairs(languages) do
           local ft = string.lower(lang)
-          -- Initialize the nested array safely if it doesn't exist yet
-          linters_by_ft[ft] = linters_by_ft[ft] or {}
-          -- Append the tool name instead of overwriting the whole table
-          table.insert(linters_by_ft[ft], mason_name)
+
+          -- Check if this specific tool should be skipped for this filetype
+          local skipped_tools = skip_linters_by_ft[ft] or {}
+          if vim.tbl_contains(skipped_tools, mason_name) then
+            -- Log a quiet print statement or notify to confirm it was skipped
+            -- print(string.format("[nvim-lint] Skipped matching %s for %s", mason_name, ft))
+          else
+            -- Check if another linter already assigned for this language
+            if linters_by_ft[ft] then
+              -- Create a readable string list of current linters
+              local current_list = table.concat(linters_by_ft[ft], ", ")
+
+              -- Trigger explicit notification warning snippet
+              vim.notify(
+                string.format(
+                  '"%s" added to [%s] for language "%s" (Multiple linters active!)',
+                  mason_name,
+                  current_list,
+                  ft
+                ),
+                vim.log.levels.WARN,
+                { title = "nvim-lint multiple linter warning" }
+              )
+            end
+
+            -- Initialize the nested array safely if it doesn't exist yet
+            linters_by_ft[ft] = linters_by_ft[ft] or {}
+            -- Append the tool name instead of overwriting the whole table
+            table.insert(linters_by_ft[ft], mason_name)
+          end
         end
       end
     end
