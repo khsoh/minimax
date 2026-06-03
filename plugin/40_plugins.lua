@@ -58,24 +58,21 @@ now_if_args(function()
     auto_install = true,
   })
   -- 1. UNIFIED NATIVE TREESITTER SETTINGS
-  vim.api.nvim_create_autocmd("FileType", {
-    pattern = "*",
-    callback = function(event)
-      local lang = vim.treesitter.language.get_lang(event.match) or event.match
-      if not lang or lang == "" then
-        return
-      end
+  Config.new_autocmd("FileType", "*", function(event)
+    local lang = vim.treesitter.language.get_lang(event.match) or event.match
+    if not lang or lang == "" then
+      return
+    end
 
-      if vim.treesitter.query.get(lang, "highlights") then
-        -- Start fast syntax highlighting
-        pcall(vim.treesitter.start, event.buf, lang)
+    if vim.treesitter.query.get(lang, "highlights") then
+      -- Start fast syntax highlighting
+      pcall(vim.treesitter.start, event.buf, lang)
 
-        vim.wo.foldmethod = "expr"
-        vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-        vim.wo.foldenable = false
-      end
-    end,
-  })
+      vim.wo.foldmethod = "expr"
+      vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+      vim.wo.foldenable = false
+    end
+  end)
 
   -- 2. INCREMENTAL SELECTION KEYMAPS (Overriding mini.ai Visual Mode Blocks)
   vim.keymap.set("n", "<CR>", function()
@@ -304,12 +301,10 @@ now_if_args(function()
 
   -- Maps '=' in Visual/Selection mode to format just the selected block
   vim.keymap.set("v", "=", function()
-    require("conform").format({
-      async = true,
-      lsp_fallback = true,
-      range = true, -- flag to enforce visual boundary limits
-    })
-  end, { desc = "Format selected range via Conform" })
+    -- Force exit Visual Mode
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", true)
+    require("conform").format({ async = true, lsp_fallback = true })
+  end, { desc = "Clean spaces range formatting" })
 
   -- Maps '=' in Normal mode to format the entire active file
   vim.keymap.set("n", "=", function()
@@ -319,11 +314,9 @@ now_if_args(function()
   -- Setup Linters
   local lint = require("lint")
   lint.linters_by_ft = linters_by_ft
-  vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-    callback = function()
-      lint.try_lint()
-    end,
-  })
+  Config.new_autocmd("BufWritePost", nil, function()
+    lint.try_lint()
+  end)
 end)
 
 -- Snippets ===================================================================
