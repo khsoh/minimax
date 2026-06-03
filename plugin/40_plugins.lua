@@ -304,7 +304,11 @@ now_if_args(function()
 
   -- Maps '=' in Visual/Selection mode to format just the selected block
   vim.keymap.set("v", "=", function()
-    require("conform").format({ async = true, lsp_fallback = true })
+    require("conform").format({
+      async = true,
+      lsp_fallback = true,
+      range = true, -- flag to enforce visual boundary limits
+    })
   end, { desc = "Format selected range via Conform" })
 
   -- Maps '=' in Normal mode to format the entire active file
