@@ -22,7 +22,7 @@ nmap("]p", '<Cmd>exe "iput "  . v:register<CR>', "Paste Below")
 -- OVERRIDES =====================
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
-nmap("<Esc>", "<cmd>nohlsearch<CR>")
+nmap("<Esc>", "<Cmd>nohlsearch<CR>")
 
 -- Exchange lines in visual mode
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
@@ -37,9 +37,7 @@ vim.keymap.set("x", "<leader>p", [["_dP]])
 vim.keymap.set({ "n", "v" }, "<C-D>", [["_d]])
 
 -- Execute current lua source file
-nmap("<leader><leader>", function()
-  vim.cmd("so")
-end, "Execute current lua source file")
+nmap("<leader><leader>", "<Cmd>so<CR>", "Execute current lua source file")
 
 -- Keybinds to cycle through the buffers
 nmap("<Tab>", ":bnext<CR>", "Next buffer")
