@@ -1,6 +1,16 @@
 -- listUpdates.lua
 -- IMPORTANT: For launchagent, stdout should only be written to if there are updates
 
+-- Force all future print() calls directly to standard output
+print = function(...)
+  local args = { ... }
+  for i, v in ipairs(args) do
+    args[i] = tostring(v)
+  end
+  io.stdout:write(table.concat(args, "\t") .. "\n")
+  io.stdout:flush()
+end
+
 local function checkPackages()
   -- Write to stderr stream
   io.stderr:write("Checking for upstream repository updates...\n")
