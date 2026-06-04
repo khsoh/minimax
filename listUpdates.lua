@@ -50,7 +50,7 @@ local function checkPackages()
           end
 
           if local_rev ~= remote_rev then
-            print(string.format("Update available for %s: %s -> %s", name, local_rev, remote_rev))
+            print(string.format("Update: %s/compare/%s...%s", remote_url, local_rev:sub(1, 8), tgt_branch))
           end
         else
           io.stderr:write(string.format("Could not parse remote revision for %s\n", name))
