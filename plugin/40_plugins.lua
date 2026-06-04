@@ -300,11 +300,12 @@ now_if_args(function()
   -- =============================================================================
 
   -- Maps '=' in Visual/Selection mode to format just the selected block
-  vim.keymap.set("v", "=", function()
-    -- Force exit Visual Mode
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "x", true)
-    require("conform").format({ async = true, lsp_fallback = true })
-  end, { desc = "Clean spaces range formatting" })
+  vim.keymap.set(
+    "v",
+    "=",
+    "<Esc>:lua require('conform').format({ async = true, lsp_callback = true})<CR>",
+    { desc = "Clean spaces range formatting", silent = true }
+  )
 
   -- Maps '=' in Normal mode to format the entire active file
   vim.keymap.set("n", "=", function()
