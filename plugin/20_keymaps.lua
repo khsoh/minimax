@@ -11,39 +11,44 @@
 -- An example helper to create a Normal mode mapping
 local nmap = function(lhs, rhs, desc)
   -- See `:h vim.keymap.set()`
-  vim.keymap.set('n', lhs, rhs, { desc = desc })
+  vim.keymap.set("n", lhs, rhs, { desc = desc })
 end
 
 -- Paste linewise before/after current line
 -- Usage: `yiw` to yank a word and `]p` to put it on the next line.
-nmap('[p', '<Cmd>exe "iput! " . v:register<CR>', 'Paste Above')
-nmap(']p', '<Cmd>exe "iput "  . v:register<CR>', 'Paste Below')
-
+nmap("[p", '<Cmd>exe "iput! " . v:register<CR>', "Paste Above")
+nmap("]p", '<Cmd>exe "iput "  . v:register<CR>', "Paste Below")
 
 -- OVERRIDES =====================
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
-nmap('<Esc>', '<cmd>nohlsearch<CR>')
+nmap("<Esc>", "<cmd>nohlsearch<CR>")
+
+-- Exchange lines in visual mode
+vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
 -- Overwrite paste by deleting selection into blackhole register and pasting from
 --   unnamed register
-vim.keymap.set('x', '<leader>p', [["_dP]])
+vim.keymap.set("x", "<leader>p", [["_dP]])
 
 -- deleting text/selection into blackhole register
 --    this is to avoid overwriting the contents of the default copy/paste register
-vim.keymap.set({ 'n', 'v' }, '<C-D>', [["_d]])
+vim.keymap.set({ "n", "v" }, "<C-D>", [["_d]])
 
 -- Execute current lua source file
-nmap('<leader><leader>', function() vim.cmd 'so' end, 'Execute current lua source file')
+nmap("<leader><leader>", function()
+  vim.cmd("so")
+end, "Execute current lua source file")
 
 -- Keybinds to cycle through the buffers
-nmap('<Tab>', ':bnext<CR>', 'Next buffer')
-nmap('<S-Tab>', ':bprev<CR>', 'Previous buffer')
+nmap("<Tab>", ":bnext<CR>", "Next buffer")
+nmap("<S-Tab>", ":bprev<CR>", "Previous buffer")
 
 --- Neovide specific setting - neovide used in viewing scrollback of ghostty
 if vim.g.neovide then
   -- Press 'q' to quit Neovide quickly when viewing scrollback
-  vim.keymap.set('n', 'q', ':qa!<CR>', { silent = true })
+  vim.keymap.set("n", "q", ":qa!<CR>", { silent = true })
 
   -- Set font-family and size
   -- vim.o.guifont = 'FiraMono Nerd Font:h18'
