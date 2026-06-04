@@ -1,37 +1,66 @@
 -- listUpdates.lua
+-- IMPORTANT: For launchagent, stdout should only be written to if there are updates
 
--- Write to stderr stream
-io.stderr:write("Checking for upstream repository updates...\n")
+local function checkPackages()
+  -- Write to stderr stream
+  io.stderr:write("Checking for upstream repository updates...\n")
 
-local status, packages = pcall(vim.pack.get, nil, { offline = false })
+  local status, packages = pcall(vim.pack.get, nil, { offline = false })
 
-if not status or not packages or vim.tbl_isempty(packages) then
-  vim.notify("Error: Could not retrieve plugin status from vim.pack.", vim.log.levels.ERROR)
-  return
-end
-
--- 1. Create a table to temporarily hold found updates
-local update_lines = {}
-
-for name, data in pairs(packages) do
-  if data.rev and data.rev_to and data.rev ~= data.rev_to then
-    local current = data.rev:sub(1, 7)
-    local upstream = data.rev_to:sub(1, 7)
-    
-    -- Format and save the string for later printing
-    table.insert(update_lines, string.format(" * %s (%s -> %s)", name, current, upstream))
+  if not status or not packages or vim.tbl_isempty(packages) then
+    io.stderr:write("Error: Could not retrieve plugin status from vim.pack.\n")
+    return
   end
-end
 
--- 2. Only print the header and the items if the table is NOT empty
-if #update_lines > 0 then
-  print("--- Plugins with Updates Available ---")
-  for _, line in ipairs(update_lines) do
-    print(line)
+  -- 1. Create a table to temporarily hold found updates
+  local update_lines = {}
+
+  local remaining_packages = #packages
+
+  if remaining_packages == 0 then
+    vim.cmd("qa")
+    return
   end
-else
-  io.stderr:write("Everything is up to date!\n")
+
+  for _, data in ipairs(packages) do
+    local name = data.spec.name
+    local tgt_branch = data.spec.version or "HEAD"
+    local remote_url = data.spec.src
+    local local_rev = data.rev
+    -- print(string.format("Package %s: %s, %s, %s", name, remote_url, tgt_branch, local_rev))
+
+    vim.system({ "git", "ls-remote", remote_url, tgt_branch }, { text = true }, function(obj)
+      -- Ensure UI operations and state changes happen on the main thread
+      if obj.code == 0 then
+        local remote_rev = obj.stdout:match("^(%x+)")
+        if remote_rev then
+          -- Match the length of the local hash if it's a short SHA
+          if #local_rev < #remote_rev then
+            remote_rev = remote_rev:sub(1, #local_rev)
+          end
+
+          if local_rev ~= remote_rev then
+            print(string.format("Update available for %s: %s -> %s", name, local_rev, remote_rev))
+          end
+        else
+          io.stderr:write(string.format("Could not parse remote revision for %s\n", name))
+        end
+      else
+        io.stderr:write(string.format("Failed to fetch remote for %s\n", name))
+      end
+
+      -- Decrement the job counter
+      remaining_packages = remaining_packages - 1
+    end)
+  end
+
+  -- Wait for up 15 seconds for jobs to finish - poll every 50ms
+  vim.wait(5000, function()
+    return remaining_packages == 0
+  end, 50)
+
+  io.stderr:write("listUpdates completed\n")
+  vim.cmd("qa")
 end
 
--- Exit headless instance cleanly
-vim.cmd("qa!")
+checkPackages()
