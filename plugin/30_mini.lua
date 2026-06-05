@@ -606,8 +606,15 @@ end)
 later(function()
   require("mini.keymap").setup()
   -- Navigate 'mini.completion' menu with `<Tab>` /  `<S-Tab>`
-  MiniKeymap.map_multistep("i", "<Tab>", { "pmenu_next" })
-  MiniKeymap.map_multistep("i", "<S-Tab>", { "pmenu_prev" })
+  MiniKeymap.map_multistep("i", "<Tab>", {
+    "pmenu_next",
+    "minisnippets_next",
+    "minisnippets_expand",
+  })
+  MiniKeymap.map_multistep("i", "<S-Tab>", {
+    "pmenu_prev",
+    "minisnippets_prev",
+  })
   -- On `<CR>` try to accept current completion item, fall back to accounting
   -- for pairs from 'mini.pairs'
   MiniKeymap.map_multistep("i", "<CR>", { "pmenu_accept", "minipairs_cr" })
@@ -740,6 +747,13 @@ end)
 -- Typical workflow is to type snippet's (configurable) prefix and expand it
 -- into a snippet session.
 --
+-- To view your keymappings:
+-- - `:= MiniKeymap.config.mappings`
+--   If the command show mappings for expand, jump_next or jump_prev is an 
+--   empty string, then check the MiniKeymap.map_multistep() configuration - and search
+--   for 'minisnippets_expand', 'minisnippets_next', 'minisnippets_prev' to see
+--   if these have been mapped to multistep key.
+--
 -- How to manage snippets:
 -- - 'mini.snippets' itself doesn't come with preconfigured snippets. Instead there
 --   is a flexible system of how snippets are prepared before expanding.
@@ -753,10 +767,10 @@ end)
 --       a collection of language snippets
 --
 -- How to expand a snippet in Insert mode:
--- - If you know snippet's prefix, type it as a word and press `<C-j>`. Snippet's
+-- - If you know snippet's prefix, type it as a word and press `<Tab>`. Snippet's
 --   body should be inserted instead of the prefix.
 -- - If you don't remember snippet's prefix, type only part of it (or none at all)
---   and press `<C-j>`. It should show picker with all snippets that have prefixes
+--   and press `<Tab>`. It should show picker with all snippets that have prefixes
 --   matching typed characters (or all snippets if none was typed).
 --   Choose one and its body should be inserted instead of previously typed text.
 --
@@ -766,7 +780,7 @@ end)
 --   is current, was or was not visited. If tabstop doesn't yet have text, it is
 --   visualized with special "ghost" inline text: • and ∎ by default.
 -- - Type necessary text at current tabstop and navigate to next/previous one
---   by pressing `<C-l>` / `<C-h>`.
+--   by pressing `<Tab>` / `<S-Tab>`.
 -- - Repeat previous step until you reach special final tabstop, usually denoted
 --   by ∎ symbol. If you spotted a mistake in an earlier tabstop, navigate to it
 --   and return back to the final tabstop.
@@ -778,6 +792,9 @@ end)
 -- - `:h MiniSnippets-examples` - examples of common setups
 -- - `:h MiniSnippets-session` - details about snippet session
 -- - `:h MiniSnippets.gen_loader` - list of available loaders
+-- stylua: ignore start
+-- The next part (until `-- stylua: ignore end`) is aligned manually for easier
+-- reading. Consider preserving this or remove `-- stylua` lines to autoformat.
 later(function()
   -- Define language patterns to work better with 'friendly-snippets'
   local latex_patterns = { "latex/**/*.json", "**/latex.json" }
@@ -800,9 +817,11 @@ later(function()
 
     -- OVERRIDE
     mappings = {
-      expand = "<C-f>", -- Ctrl + f to go forward
-      jump_next = "<C-f>",
-      jump_prev = "<C-b>", -- Ctrl + b to go backward
+      -- Mappings are disabled as they are handled by mini.keymap
+      expand = "",     -- Triggers snippet expansion
+      jump_next = "",  -- Jumps to next snippet
+      jump_prev = "",  -- Jumps to previous snippet
+      stop = "<C-c>",  -- Stops active snippet session
     },
     -- END OVERRIDE
   })
@@ -812,6 +831,7 @@ later(function()
   -- that will provide them. To have that, uncomment next line (use `gcc`).
   -- MiniSnippets.start_lsp_server()
 end)
+-- stylua: ignore end
 
 -- Split and join arguments (regions inside brackets between allowed separators).
 -- It uses Lua patterns to find arguments, which means it works in comments and
