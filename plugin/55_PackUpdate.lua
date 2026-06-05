@@ -1,11 +1,19 @@
 -- Complete plugin names when typing :PackUpdate <Tab>
 local function complete_plugins(arg_lead)
-  if not vim.pack or not vim.pack.get then return {} end
-  -- Fetch names of currently tracked plugins
-  local plugins = vim.tbl_keys(vim.pack.get() or {})
-  return vim.tbl_filter(function(name)
-    return name:find(arg_lead, 1, true) == 1
-  end, plugins)
+  -- 1. Grab all native plugin records safely
+  local pack_data = (vim.pack and vim.pack.get) and vim.pack.get(nil, { info = false }) or {}
+
+  -- 2. Extract string names into a plain array
+  local plugin_names = vim
+    .iter(pack_data)
+    :map(function(item)
+      return item.spec.name
+    end)
+    :totable()
+
+  -- 3. Let mini.fuzzy do all the hard work!
+  -- It fuzzy-matches arg_lead against plugin_names list and returns a clean, sorted string list
+  return require("mini.fuzzy").filtersort(arg_lead, plugin_names)
 end
 
 -- Define the interactive PackUpdate user command
@@ -35,7 +43,7 @@ vim.api.nvim_create_user_command("PackUpdate", function(opts)
   end
 end, {
   desc = "Stage plugin updates with an interactive confirmation buffer audit",
-  nargs = "*",           -- Accepts zero or more plugin name arguments
-  bang = true,           -- Accepts a ! modifier to force the update bypass
+  nargs = "*", -- Accepts zero or more plugin name arguments
+  bang = true, -- Accepts a ! modifier to force the update bypass
   complete = complete_plugins, -- Hook tab-completion for plugin names
 })
