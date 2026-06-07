@@ -181,21 +181,21 @@ now_if_args(function()
   local process_items_opts = { kind_priority = { Text = -1, Snippet = 99 } }
   local process_items = function(items, base)
     -- OVERRIDE
-    -- return MiniCompletion.default_process_items(items, base, process_items_opts)
+    return MiniCompletion.default_process_items(items, base, process_items_opts)
 
     -- 1. Use mini.fuzzy to filter and rank items based on the typed 'base'
-    local matched_items = MiniFuzzy.process_items(items, base, {
-      -- Pass a custom path telling mini.fuzzy where to for the match text
-      path = function(item)
-        return item.filterText or item.label
-      end,
-    })
-
-    -- 2. Sort the matched items using kind priority rules
-    local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
-
-    -- 3. Slice the final table to reduce overflowing the popup menu
-    return vim.list_slice(matched_items, 1, 20)
+    -- local matched_items = MiniFuzzy.process_items(items, base, {
+    --   -- Pass a custom path telling mini.fuzzy where to for the match text
+    --   path = function(item)
+    --     return item.filterText or item.label
+    --   end,
+    -- })
+    --
+    -- -- 2. Sort the matched items using kind priority rules
+    -- local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
+    --
+    -- -- 3. Slice the final table to reduce overflowing the popup menu
+    -- return vim.list_slice(matched_items, 1, 20)
   end
   require("mini.completion").setup({
     lsp_completion = {
@@ -609,7 +609,6 @@ later(function()
   MiniKeymap.map_multistep("i", "<Tab>", {
     "pmenu_next",
     "minisnippets_next",
-    "minisnippets_expand",
   })
   MiniKeymap.map_multistep("i", "<S-Tab>", {
     "pmenu_prev",
@@ -818,7 +817,7 @@ later(function()
     -- OVERRIDE
     mappings = {
       -- Mappings are disabled as they are handled by mini.keymap
-      expand = "",     -- Triggers snippet expansion
+      expand = "<C-f>",     -- Triggers snippet expansion
       jump_next = "",  -- Jumps to next snippet
       jump_prev = "",  -- Jumps to previous snippet
       stop = "<C-c>",  -- Stops active snippet session
