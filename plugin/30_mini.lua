@@ -181,21 +181,16 @@ now_if_args(function()
   local process_items_opts = { kind_priority = { Text = -1, Snippet = 99 } }
   local process_items = function(items, base)
     -- OVERRIDE
-    return MiniCompletion.default_process_items(items, base, process_items_opts)
+    -- return MiniCompletion.default_process_items(items, base, process_items_opts)
 
     -- 1. Use mini.fuzzy to filter and rank items based on the typed 'base'
-    -- local matched_items = MiniFuzzy.process_items(items, base, {
-    --   -- Pass a custom path telling mini.fuzzy where to for the match text
-    --   path = function(item)
-    --     return item.filterText or item.label
-    --   end,
-    -- })
-    --
-    -- -- 2. Sort the matched items using kind priority rules
-    -- local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
-    --
-    -- -- 3. Slice the final table to reduce overflowing the popup menu
-    -- return vim.list_slice(matched_items, 1, 20)
+    local matched_items = MiniFuzzy.process_lsp_items(items, base)
+
+    -- 2. Sort the matched items using kind priority rules
+    local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
+
+    -- 3. Slice the final table to reduce overflowing the popup menu
+    return vim.list_slice(matched_items, 1, 20)
   end
   require("mini.completion").setup({
     lsp_completion = {
