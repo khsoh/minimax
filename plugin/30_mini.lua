@@ -190,7 +190,7 @@ now_if_args(function()
     local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
 
     -- 3. Slice the final table to reduce overflowing the popup menu
-    return vim.list_slice(matched_items, 1, 20)
+    return vim.list_slice(prioritized, 1, 20)
   end
   require("mini.completion").setup({
     lsp_completion = {
