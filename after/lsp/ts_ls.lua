@@ -1,4 +1,4 @@
 return {
-  -- Uses standard lspconfig workspace lookup helpers
-  root_dir = require("lspconfig.util").root_pattern( "package.json", "tsconfig.json", "jsconfig.json", ".git"),
+  -- Use root markers to detect workspace root
+  root_markers = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
 }

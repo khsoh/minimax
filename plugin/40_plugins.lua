@@ -121,7 +121,6 @@ end)
 
 now_if_args(function()
   add({
-    Config.gh("neovim/nvim-lspconfig"),
     Config.gh("mason-org/mason.nvim"),
     Config.gh("mason-org/mason-lspconfig.nvim"),
     Config.gh("WhoIsSethDaniel/mason-tool-installer.nvim"),

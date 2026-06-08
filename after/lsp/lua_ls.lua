@@ -10,9 +10,10 @@
 --
 -- This config is designed for Lua's activity around Neovim. It provides only
 -- basic config and can be further improved.
+-- stylua: ignore start
 return {
-  -- Uses standard lspconfig workspace detection (safe for your handler loop)
-  root_dir = require("lspconfig.util").root_pattern(".luarc.json", ".luarc.jsonc", ".git", "init.lua"),
+  -- Use root markers to detect workspace root
+  root_markers = { ".luarc.json", ".luarc.jsonc", ".git", "init.lua" },
 
   -- 1. BUFFER ATTACHMENT HOOK
   on_attach = function(client, bufnr)
@@ -22,7 +23,7 @@ return {
 
     -- Optimize autocomplete trigger keys specifically for mini.completion
     if client.server_capabilities.completionProvider then
-        client.server_capabilities.completionProvider.triggerCharacters = { ".", ":", "#", "(" }
+      client.server_capabilities.completionProvider.triggerCharacters = { ".", ":", "#", "(" }
     end
 
     -- Note: Feel free to add any buffer-local LSP keymaps right here
@@ -35,8 +36,8 @@ return {
     Lua = {
       -- Define runtime properties. Use 'LuaJIT', as it is built into Neovim.
       runtime = {
-        version = 'LuaJIT',
-        path = vim.split(package.path, ';')
+        version = "LuaJIT",
+        path = vim.split(package.path, ";"),
       },
       workspace = {
         checkThirdParty = false,
@@ -59,3 +60,4 @@ return {
     },
   },
 }
+-- stylua: ignore end
