@@ -160,6 +160,7 @@ now_if_args(function()
   local mason_lsp_config_names = {}
   local formatters_by_ft = {}
   local linters_by_ft = {}
+  local lint = require("lint")
 
   -- DEFINE YOUR SKIP FILTERS (Indexed by filetype)
   -- Use this if multiple mason_tools are support a single language for same function
@@ -168,6 +169,56 @@ now_if_args(function()
     typescript = {},
   }
   local skip_linters_by_ft = {}
+
+  local function get_linter_name(mason_name)
+    -- Helper to safely evaluate and parse the linter definition structure
+    local function matches_cmd(def)
+      if type(def) == "function" then
+        local success, result = pcall(def)
+        def = success and result or nil
+      end
+
+      if type(def) == "table" then
+        local cmd_value = def.cmd
+        -- CRITICAL FIX: If cmd itself is a function, run it to get the string (e.g., "biome")
+        if type(cmd_value) == "function" then
+          local success, result = pcall(cmd_value)
+          cmd_value = success and result or nil
+        end
+
+        -- Extract just the base binary name if it returns a path
+        if type(cmd_value) == "string" then
+          local binary_name = vim.fn.fnamemodify(cmd_value, ":t")
+          return binary_name == mason_name
+        end
+      end
+      return false
+    end
+
+    -- 1. Try a raw file lookup instead of relying on the broken metatable index
+    local direct_ok, direct_def = pcall(require, "lint.linters." .. mason_name)
+    if direct_ok and direct_def and matches_cmd(direct_def) then
+      return mason_name
+    end
+
+    -- 2. Cleanly fetch all nvim-lint recipe files using Neovim's runtime path API
+    local files = vim.api.nvim_get_runtime_file("lua/lint/linters/*.lua", true)
+
+    for _, filepath in ipairs(files) do
+      local recipe_name = vim.fn.fnamemodify(filepath, ":t:r")
+
+      -- Clear out any cached nil values to ensure the module loads freshly
+      package.loaded["lint.linters." .. recipe_name] = nil
+
+      local ok, def = pcall(require, "lint.linters." .. recipe_name)
+      if ok and def and matches_cmd(def) then
+        return recipe_name
+      end
+    end
+
+    -- 3. Return empty string if no valid recipe handles this mason name
+    return ""
+  end
 
   for _, mason_name in ipairs(mason_tools) do
     if mason_registry.has_package(mason_name) then
@@ -252,8 +303,14 @@ now_if_args(function()
 
             -- Initialize the nested array safely if it doesn't exist yet
             linters_by_ft[ft] = linters_by_ft[ft] or {}
+
+            -- Look up tool name from lint.linters
+            local linter_name = get_linter_name(mason_name)
+
             -- Append the tool name instead of overwriting the whole table
-            table.insert(linters_by_ft[ft], mason_name)
+            if linter_name ~= "" then
+              table.insert(linters_by_ft[ft], linter_name)
+            end
           end
         end
       end
@@ -313,7 +370,6 @@ now_if_args(function()
   end, { desc = "Format current buffer via Conform" })
 
   -- Setup Linters
-  local lint = require("lint")
   lint.linters_by_ft = linters_by_ft
   Config.new_autocmd("BufWritePost", nil, function()
     lint.try_lint()
