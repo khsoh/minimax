@@ -170,6 +170,16 @@ now_if_args(function()
   }
   local skip_linters_by_ft = {}
 
+  -- ==== Internal function to translate mason name to nvim-lint name
+  --  The search is based on these rules:
+  --  1. Return mason name if lint.linters.<masonName> exists
+  --  2. for each lint.linters.<recipe_name> from nvim-lint get an object (recipe)
+  --     a. If the recipe is a table, go to step c
+  --     b. The recipe should be a function - call it to get a table to use as recipe
+  --     c. The table should have a field named "cmd" which should be a string or function.
+  --     d. If the cmd is a function, call it to get a result to replace cmd
+  --     e. Get the base filename of the cmd string - and if the result matches masonName, then
+  --          the linter name is the recipe_name.  Otherwise, check the next recipe
   local function get_linter_name(mason_name)
     -- Helper to safely evaluate and parse the linter definition structure
     local function matches_cmd(def)
@@ -206,9 +216,6 @@ now_if_args(function()
 
     for _, filepath in ipairs(files) do
       local recipe_name = vim.fn.fnamemodify(filepath, ":t:r")
-
-      -- Clear out any cached nil values to ensure the module loads freshly
-      package.loaded["lint.linters." .. recipe_name] = nil
 
       local ok, def = pcall(require, "lint.linters." .. recipe_name)
       if ok and def and matches_cmd(def) then
@@ -307,9 +314,12 @@ now_if_args(function()
             -- Look up tool name from lint.linters
             local linter_name = get_linter_name(mason_name)
 
-            -- Append the tool name instead of overwriting the whole table
             if linter_name ~= "" then
+              -- Append the tool name instead of overwriting the whole table
               table.insert(linters_by_ft[ft], linter_name)
+            else
+              -- Warn if cannot find linter for the corresponding mason tool
+              vim.notify(string.format("Cannot find linter for mason tool %s!!", mason_name))
             end
           end
         end
