@@ -340,6 +340,15 @@ later(function()
     -- Number of lines within which textobject is searched
     n_lines = 200,
   })
+
+  -- Define your navigation maps right after
+  vim.keymap.set("n", "]a", function()
+    require("mini.ai").move_cursor("left", "a", "a", { search_method = "next" })
+  end, { desc = "Jump to next arg" })
+
+  vim.keymap.set("n", "[a", function()
+    require("mini.ai").move_cursor("left", "a", "a", { search_method = "prev" })
+  end, { desc = "Jump to prev arg" })
 end)
 
 -- Align text interactively. Example usage:
