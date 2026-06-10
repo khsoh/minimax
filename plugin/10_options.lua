@@ -90,7 +90,7 @@ vim.o.formatlistpat = [[^\s*[0-9\-\+\*]\+[\.\)]*\s\+]]
 
 -- Built-in completion
 vim.o.complete        = '.,w,b,kspell'                  -- Use less sources
-vim.o.completeopt     = 'menuone,noselect,noinsert'     -- Use custom behavior
+vim.o.completeopt     = 'menuone,noselect,fuzzy,nosort' -- Use custom behavior
 vim.o.completetimeout = 100                             -- Limit sources delay
 
 -- OVERRIDES =====================

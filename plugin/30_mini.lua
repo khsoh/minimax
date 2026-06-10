@@ -175,21 +175,17 @@ end)
 -- It also works with snippet candidates provided by LSP server. Best experience
 -- when paired with 'mini.snippets' (which is set up in this file).
 now_if_args(function()
-  require("mini.fuzzy").setup({})
   -- Customize post-processing of LSP responses for a better user experience.
+  -- Use fuzzy filter sort
   -- Don't show 'Text' suggestions (usually noisy) and show snippets last.
-  local process_items_opts = { kind_priority = { Text = -1, Snippet = 99 } }
+  local process_items_opts = {
+    filtersort = "fuzzy",
+    kind_priority = { Text = -1, Snippet = 99 },
+  }
   local process_items = function(items, base)
-    -- OVERRIDE
-    -- return MiniCompletion.default_process_items(items, base, process_items_opts)
+    local prioritized = MiniCompletion.default_process_items(items, base, process_items_opts)
 
-    -- 1. Use mini.fuzzy to filter and rank items based on the typed 'base'
-    local matched_items = MiniFuzzy.process_lsp_items(items, base)
-
-    -- 2. Sort the matched items using kind priority rules
-    local prioritized = MiniCompletion.default_process_items(matched_items, base, process_items_opts)
-
-    -- 3. Slice the final table to reduce overflowing the popup menu
+    -- Slice the final table to reduce overflowing the popup menu
     return vim.list_slice(prioritized, 1, 20)
   end
   require("mini.completion").setup({
