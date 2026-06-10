@@ -11,10 +11,9 @@
 -- This config is designed for Lua's activity around Neovim. It provides only
 -- basic config and can be further improved.
 -- stylua: ignore start
-return {
-  -- Use root markers to detect workspace root
-  root_markers = { ".luarc.json", ".luarc.jsonc", ".git", "init.lua" },
 
+---@type vim.lsp.Config
+return {
   -- STATIC FALLBACK SETTINGS
   -- These settings are used when project-local config file (.luarc.json or .luarc.jsonc) exists.
   -- This causes early exit in on_init and hence the vim.tbl_deep_extend code will not be executed
