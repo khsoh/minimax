@@ -1,3 +1,4 @@
+---@type vim.lsp.Config
 return {
   filetypes = { "sh", "bash", "zsh" },
   -- Leverage settings to tell the underlying server how to process files

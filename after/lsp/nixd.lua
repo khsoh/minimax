@@ -1,5 +1,8 @@
+---@type vim.lsp.Config
 return {
-  cmd = { "nixd" },
+  -- Commented out the default in nvim-lspconfig/lsp/nixd.lua
+  -- cmd = { "nixd" },
+
   settings = {
     nixd = {
       nixpkgs = {

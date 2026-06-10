@@ -1,5 +1,6 @@
 local base_path = vim.fn.stdpath("data") .. "/mason/packages/powershell-editor-services"
 local clean_bundle_path = vim.fs.normalize(base_path)
+---@type vim.lsp.Config
 return {
   bundle_path = clean_bundle_path,
 
@@ -11,8 +12,8 @@ return {
   settings = {
     powershell = {
       codeFormatting = {
-        Preset = "OTBS"
-      }
-    }
+        Preset = "OTBS",
+      },
+    },
   },
 }
