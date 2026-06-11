@@ -118,7 +118,7 @@ end)
 --
 -- Linting support is provided via nvim-lint package
 --
-
+-- stylua: ignore start
 now_if_args(function()
   add({
     Config.gh("neovim/nvim-lspconfig"), -- DO NOT REMOVE: This is needed by mason-lspconfig.nvim !!
@@ -133,21 +133,9 @@ now_if_args(function()
   -- 1. DEFINE PURE MASON TOOLS (No Nix tools here!)
   -- =============================================================================
   local mason_tools = {
-    "lua-language-server",
-    "typescript-language-server",
-    "stylua",
-    "shellcheck",
-    "clangd",
-    "gopls",
-    "pyright",
-    "rust-analyzer",
-    "bash-language-server",
-    "html-lsp",
-    "lemminx",
-    "marksman",
-    "powershell-editor-services",
-    "biome", -- LSP, Formatter and Linter for Javascript, TypeScript, JSON
-    "zls",
+    "html-lsp", -- HTML; LSP
+    "css-lsp",  -- CSS, SCSS, LESS; LSP
+    "json-lsp", -- JSON; LSP
   }
 
   -- =============================================================================
@@ -158,8 +146,18 @@ now_if_args(function()
 
   local mason_registry = require("mason-registry")
   local mason_lsp_config_names = {}
-  local formatters_by_ft = {}
-  local linters_by_ft = {}
+  local formatters_by_ft = {
+    lua = { "stylua" },
+    nix = { "nixfmt" },
+    json = { "biome" },
+    javascript = { "biome" },
+    typescript = { "biome" },
+  }
+  local linters_by_ft = {
+    json = { "biomejs" },
+    javascript = { "biomejs" },
+    typescript = { "biomejs" },
+  }
   local lint = require("lint")
 
   -- DEFINE YOUR SKIP FILTERS (Indexed by filetype)
@@ -336,11 +334,29 @@ now_if_args(function()
   -- 3. NIX-SPECIFIC ENVIRONMENT SETUP (Completely Independent)
   -- =============================================================================
 
-  -- Setup nixd, telling it to handle formatting using your Nix-installed nixfmt
-  vim.lsp.enable("nixd")
+  -- Setup the non-mason tools here to skip mason-lspconfig
+  local nix_lsps = {
+    "lua_ls",
+    "nixd",
+    "bashls",
+    "ts_ls",
+    "marksman",
+    "powershell_es",
+    "pyright",
+    "clangd",
+    "gopls",
+    "rust_analyzer",
+    "zls",
 
-  -- Tell Conform to use your Nix-installed nixfmt for Nix files
-  formatters_by_ft["nix"] = { "nixfmt" }
+    -- UNABLE TO WORK ON NIX DUE TO PATH ISSUES
+    -- "html",     -- HTML server (vscode-html-language-server)
+    -- "cssls",    -- CSS server (vscode-html-language-server)
+    -- "jsonls",   -- JSON server (vscode-html-language-server)
+    "lemminx",
+  }
+  for _, server in ipairs(nix_lsps) do
+    vim.lsp.enable(server)
+  end
 
   --== DEBUG
   -- vim.notify("LSPs: " .. vim.inspect(mason_lsp_config_names))
@@ -385,6 +401,7 @@ now_if_args(function()
     lint.try_lint()
   end)
 end)
+-- stylua: ignore end
 
 -- Snippets ===================================================================
 
