@@ -41,7 +41,7 @@
       "src": "https://github.com/toppair/peek.nvim"
     },
     "tree-sitter-manager.nvim": {
-      "rev": "4a4ff2b348cf7ba1f1ccddb9abf6717af0f777b2",
+      "rev": "651f786a3542d92972ac70454b1038ed7c67c0c1",
       "src": "https://github.com/romus204/tree-sitter-manager.nvim"
     }
   }
