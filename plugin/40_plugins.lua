@@ -128,13 +128,14 @@ now_if_args(function()
   -- 1. DEFINE FORMATTERS AND LINTERS
   -- =============================================================================
   local formatters_by_ft = {
-    css = { "prettier", "biome", stop_after_first = true },
-    html = { "prettier", "biome", stop_after_first = true },
+    css = { "prettier_project", "biome", stop_after_first = true },
+    html = { "prettier_project", "biome", stop_after_first = true },
+    json = { "prettier_project", "biome", stop_after_first = true },
+    javascript = { "prettier_project", "biome", stop_after_first = true },
+    typescript = { "prettier_project", "biome", stop_after_first = true },
     lua = { "stylua" },
     nix = { "nixfmt" },
-    json = { "prettier", "biome", stop_after_first = true },
-    javascript = { "prettier", "biome", stop_after_first = true },
-    typescript = { "prettier", "biome", stop_after_first = true },
+    markdown = { "prettier_global" },
   }
   local linters_by_ft = {
     json = { "biomejs" },
@@ -190,7 +191,12 @@ now_if_args(function()
         args = { "--indent-type", "Spaces", "--indent-width", "2", "-" },
       },
 
-      prettier = {
+      -- STRICT PROFILE for prettier - runs only if config files exist
+      --   this is to avoid major conflicts with biome - we want to use
+      --   biome by default especially in JS projects
+      prettier_project = {
+        -- Inherit everything from built-in prettier
+        inherit = "prettier",
         -- Prettier will ONLY run if it finds one of these configuration files
         require_cwd = true,
         cwd = require("conform.util").root_file({
@@ -201,6 +207,13 @@ now_if_args(function()
           ".prettierrc.js",
           "prettier.config.js",
         }),
+      },
+
+      -- LOOSE PROFILE: Always runs everywhere (no root file constraints)
+      prettier_global = {
+        -- Inherit everything from built-in prettier, but explicitly disable cwd constraints
+        inherit = "prettier",
+        require_cwd = false,
       },
 
       biome = {
