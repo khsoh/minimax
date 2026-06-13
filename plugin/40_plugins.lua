@@ -99,7 +99,6 @@ end)
 --
 -- Here Neovim itself is a client (see `:h vim.lsp`). Language servers need to
 -- be installed separately based on your OS, CLI tools, and preferences.
--- See note about 'mason.nvim' at the bottom of the file.
 --
 -- Neovim's team collects commonly used configurations for most language servers
 -- inside 'neovim/nvim-lspconfig' plugin.
@@ -118,40 +117,24 @@ end)
 --
 -- Linting support is provided via nvim-lint package
 --
--- stylua: ignore start
 now_if_args(function()
   add({
-    Config.gh("neovim/nvim-lspconfig"), -- DO NOT REMOVE: This is needed by mason-lspconfig.nvim !!
-    Config.gh("mason-org/mason.nvim"),
-    Config.gh("mason-org/mason-lspconfig.nvim"),
-    Config.gh("WhoIsSethDaniel/mason-tool-installer.nvim"),
+    Config.gh("neovim/nvim-lspconfig"), -- DO NOT REMOVE: This is needed by vim.lsp.enable() to provide the background database
     Config.gh("stevearc/conform.nvim"),
     Config.gh("mfussenegger/nvim-lint"),
   })
 
   -- =============================================================================
-  -- 1. DEFINE PURE MASON TOOLS (No Nix tools here!)
+  -- 1. DEFINE FORMATTERS AND LINTERS
   -- =============================================================================
-  local mason_tools = {
-    "html-lsp", -- HTML; LSP
-    "css-lsp",  -- CSS, SCSS, LESS; LSP
-    "json-lsp", -- JSON; LSP
-  }
-
-  -- =============================================================================
-  -- 2. SETUP MASON & BINDINGS (Same loop logic as before)
-  -- =============================================================================
-  require("mason").setup()
-  require("mason-tool-installer").setup({ ensure_installed = mason_tools, auto_install = true })
-
-  local mason_registry = require("mason-registry")
-  local mason_lsp_config_names = {}
   local formatters_by_ft = {
+    css = { "prettier", "biome", stop_after_first = true },
+    html = { "prettier", "biome", stop_after_first = true },
     lua = { "stylua" },
     nix = { "nixfmt" },
-    json = { "biome" },
-    javascript = { "biome" },
-    typescript = { "biome" },
+    json = { "prettier", "biome", stop_after_first = true },
+    javascript = { "prettier", "biome", stop_after_first = true },
+    typescript = { "prettier", "biome", stop_after_first = true },
   }
   local linters_by_ft = {
     json = { "biomejs" },
@@ -160,181 +143,9 @@ now_if_args(function()
   }
   local lint = require("lint")
 
-  -- DEFINE YOUR SKIP FILTERS (Indexed by filetype)
-  -- Use this if multiple mason_tools are support a single language for same function
-  local skip_formatters_by_ft = {
-    lua = {},
-    typescript = {},
-  }
-  local skip_linters_by_ft = {}
-
-  -- ==== Internal function to translate mason name to nvim-lint name
-  --  The search is based on these rules:
-  --  1. Return mason name if lint.linters.<masonName> exists
-  --  2. for each lint.linters.<recipe_name> from nvim-lint get an object (recipe)
-  --     a. If the recipe is a table, go to step c
-  --     b. The recipe should be a function - call it to get a table to use as recipe
-  --     c. The table should have a field named "cmd" which should be a string or function.
-  --     d. If the cmd is a function, call it to get a result to replace cmd
-  --     e. Get the base filename of the cmd string - and if the result matches masonName, then
-  --          the linter name is the recipe_name.  Otherwise, check the next recipe
-  local function get_linter_name(mason_name)
-    -- Helper to safely evaluate and parse the linter definition structure
-    local function matches_cmd(def)
-      if type(def) == "function" then
-        local success, result = pcall(def)
-        def = success and result or nil
-      end
-
-      if type(def) == "table" then
-        local cmd_value = def.cmd
-        -- CRITICAL FIX: If cmd itself is a function, run it to get the string (e.g., "biome")
-        if type(cmd_value) == "function" then
-          local success, result = pcall(cmd_value)
-          cmd_value = success and result or nil
-        end
-
-        -- Extract just the base binary name if it returns a path
-        if type(cmd_value) == "string" then
-          local binary_name = vim.fn.fnamemodify(cmd_value, ":t")
-          return binary_name == mason_name
-        end
-      end
-      return false
-    end
-
-    -- 1. Try a raw file lookup instead of relying on the broken metatable index
-    local direct_ok, direct_def = pcall(require, "lint.linters." .. mason_name)
-    if direct_ok and direct_def and matches_cmd(direct_def) then
-      return mason_name
-    end
-
-    -- 2. Cleanly fetch all nvim-lint recipe files using Neovim's runtime path API
-    local files = vim.api.nvim_get_runtime_file("lua/lint/linters/*.lua", true)
-
-    for _, filepath in ipairs(files) do
-      local recipe_name = vim.fn.fnamemodify(filepath, ":t:r")
-
-      local ok, def = pcall(require, "lint.linters." .. recipe_name)
-      if ok and def and matches_cmd(def) then
-        return recipe_name
-      end
-    end
-
-    -- 3. Return empty string if no valid recipe handles this mason name
-    return ""
-  end
-
-  for _, mason_name in ipairs(mason_tools) do
-    if mason_registry.has_package(mason_name) then
-      local p = mason_registry.get_package(mason_name)
-      local categories = p.spec.categories or {}
-      local languages = p.spec.languages or {}
-
-      -- 1. Check for LSP
-      if vim.tbl_contains(categories, "LSP") then
-        local lspconfig_key = mason_name
-        if p.spec and p.spec.neovim and p.spec.neovim.lspconfig then
-          lspconfig_key = p.spec.neovim.lspconfig
-        end
-        table.insert(mason_lsp_config_names, lspconfig_key)
-      end
-
-      -- 2. Check for Formatter
-      if vim.tbl_contains(categories, "Formatter") then
-        for _, lang in ipairs(languages) do
-          local ft = string.lower(lang)
-
-          -- Check if this specific tool should be skipped for this filetype
-          local skipped_tools = skip_formatters_by_ft[ft] or {}
-          if vim.tbl_contains(skipped_tools, mason_name) then
-            -- Log a quiet print statement or notify to confirm it was skipped
-            -- print(string.format("[conform] Skipped matching %s for %s", mason_name, ft))
-          else
-            -- Check if another formatter already assigned for this language
-            if formatters_by_ft[ft] then
-              -- Create a readable string list of current formatters
-              local current_list = table.concat(formatters_by_ft[ft], ", ")
-
-              -- Trigger explicit notification warning snippet
-              vim.notify(
-                string.format(
-                  '"%s" added to [%s] for language "%s" (Multiple formatters active!)',
-                  mason_name,
-                  current_list,
-                  ft
-                ),
-                vim.log.levels.WARN,
-                { title = "conform multiple formatter warning" }
-              )
-            end
-
-            -- Initialize the nested array safely if it doesn't exist yet
-            formatters_by_ft[ft] = formatters_by_ft[ft] or {}
-            -- Append the tool name instead of overwriting the whole table
-            table.insert(formatters_by_ft[ft], mason_name)
-          end
-        end
-      end
-
-      -- 3. Check for Linter
-      if vim.tbl_contains(categories, "Linter") then
-        for _, lang in ipairs(languages) do
-          local ft = string.lower(lang)
-
-          -- Check if this specific tool should be skipped for this filetype
-          local skipped_tools = skip_linters_by_ft[ft] or {}
-          if vim.tbl_contains(skipped_tools, mason_name) then
-            -- Log a quiet print statement or notify to confirm it was skipped
-            -- print(string.format("[nvim-lint] Skipped matching %s for %s", mason_name, ft))
-          else
-            -- Check if another linter already assigned for this language
-            if linters_by_ft[ft] then
-              -- Create a readable string list of current linters
-              local current_list = table.concat(linters_by_ft[ft], ", ")
-
-              -- Trigger explicit notification warning snippet
-              vim.notify(
-                string.format(
-                  '"%s" added to [%s] for language "%s" (Multiple linters active!)',
-                  mason_name,
-                  current_list,
-                  ft
-                ),
-                vim.log.levels.WARN,
-                { title = "nvim-lint multiple linter warning" }
-              )
-            end
-
-            -- Initialize the nested array safely if it doesn't exist yet
-            linters_by_ft[ft] = linters_by_ft[ft] or {}
-
-            -- Look up tool name from lint.linters
-            local linter_name = get_linter_name(mason_name)
-
-            if linter_name ~= "" then
-              -- Append the tool name instead of overwriting the whole table
-              table.insert(linters_by_ft[ft], linter_name)
-            else
-              -- Warn if cannot find linter for the corresponding mason tool
-              vim.notify(string.format("Cannot find linter for mason tool %s!!", mason_name))
-            end
-          end
-        end
-      end
-    end
-  end
-
-  require("mason-lspconfig").setup({
-    ensure_installed = mason_lsp_config_names,
-    automatic_enable = true,
-  })
-
   -- =============================================================================
-  -- 3. NIX-SPECIFIC ENVIRONMENT SETUP (Completely Independent)
+  -- 2. LSPs
   -- =============================================================================
-
-  -- Setup the non-mason tools here to skip mason-lspconfig
   local nix_lsps = {
     "lua_ls",
     "nixd",
@@ -353,16 +164,19 @@ now_if_args(function()
     -- "cssls",    -- CSS server (vscode-html-language-server)
     -- "jsonls",   -- JSON server (vscode-html-language-server)
     "lemminx",
+    "superhtml", -- HTML
+    "biome", -- HTML, CSS, JSON
   }
+  -- Enabling the LSPs - need the nvim-lspconfig background database
   for _, server in ipairs(nix_lsps) do
     vim.lsp.enable(server)
   end
 
   --== DEBUG
-  -- vim.notify("LSPs: " .. vim.inspect(mason_lsp_config_names))
   -- vim.notify("Formatters: " .. vim.inspect(formatters_by_ft))
   -- vim.notify("Linters: " .. vim.inspect(linters_by_ft))
 
+  -- Setting up the formatters
   require("conform").setup({
     formatters_by_ft = formatters_by_ft,
     format_on_save = { timeout_ms = 500, lsp_fallback = true },
@@ -375,11 +189,29 @@ now_if_args(function()
         -- Pass CLI arguments to force spaces instead of tabs
         args = { "--indent-type", "Spaces", "--indent-width", "2", "-" },
       },
+
+      prettier = {
+        -- Prettier will ONLY run if it finds one of these configuration files
+        require_cwd = true,
+        cwd = require("conform.util").root_file({
+          ".prettierrc",
+          ".prettierrc.json",
+          ".prettierrc.yml",
+          ".prettierrc.yaml",
+          ".prettierrc.js",
+          "prettier.config.js",
+        }),
+      },
+
+      biome = {
+        -- Biome acts as the global safety net. It runs everywhere else!
+        require_cwd = false,
+      },
     },
   })
 
   -- =============================================================================
-  -- 5. LINK NATIVE INDENTATION (=) TO CONFORM.NVIM
+  -- 3. LINK NATIVE INDENTATION (=) TO CONFORM.NVIM
   -- =============================================================================
 
   -- Maps '=' in Visual/Selection mode to format just the selected block
@@ -401,7 +233,6 @@ now_if_args(function()
     lint.try_lint()
   end)
 end)
--- stylua: ignore end
 
 -- Snippets ===================================================================
 
