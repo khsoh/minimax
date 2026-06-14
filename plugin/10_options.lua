@@ -128,6 +128,50 @@ vim.filetype.add {
 local f = function() vim.cmd('setlocal formatoptions-=c formatoptions-=o') end
 Config.new_autocmd('FileType', nil, f, "Proper 'formatoptions'")
 
+-- Special handling Ghostty scrollback and screen files in Neovide
+local ghosttyBufType = function(args)
+  -- 1. Grab the current raw environment variable string
+  local raw_tmp = os.getenv("TMPDIR") or "/tmp"
+
+  -- 2. Use Neovim's libuv binding to resolve any macOS symlinks
+  local canonical_tmp = vim.uv.fs_realpath(raw_tmp) or raw_tmp
+
+  -- 3. Resolve symlinks for the current active buffer path as well
+  local raw_file_path = vim.api.nvim_buf_get_name(args.buf)
+  local canonical_file_path = vim.uv.fs_realpath(raw_file_path) or raw_file_path
+
+  -- 4. Securely verify if the true buffer location sits inside your real tmp workspace
+  if canonical_file_path:find(canonical_tmp, 1, true) == 1 then
+    -- 1. Force Neovim to re-read the file off the disk once Ghostty finishes streaming text
+    vim.cmd("checktime " .. args.buf)
+
+    -- 2. Defer setting 'nofile' by 20 milliseconds to let the IO buffer load safely
+    vim.defer_fn(function()
+      if vim.api.nvim_buf_is_valid(args.buf) then
+        -- Safely set the buffer options without breaking the file reader stream
+        vim.api.nvim_set_option_value("buftype", "nofile", { buf = args.buf })
+
+        -- Bonus: Instantly jump the cursor to the very bottom line of the history logs
+        local line_count = vim.api.nvim_buf_line_count(args.buf)
+        vim.api.nvim_win_set_cursor(0, { line_count, 0 })
+
+        -- Remap standard closing commands ONLY inside this scratch buffer workspace
+        -- This intercepts ":q" or "q" and upgrades them to close the entire Neovide window completely.
+        local opts = { buffer = args.buf, silent = true }
+        vim.keymap.set("n", "q",  "<cmd>qa!<CR>", opts)
+        vim.keymap.set("n", ":q", "<cmd>qa!<CR>", opts)
+        vim.keymap.set("n", ":x", "<cmd>qa!<CR>", opts)
+      end
+    -- 20ms is plenty of time for macOS to finish the flush, keeping it unnoticeable
+    end, 20)
+  end
+end
+
+Config.new_autocmd({ "BufReadPost", "BufNewFile" },
+  { "*/screen.txt", "*/history.txt" },
+  ghosttyBufType,
+  "Force buftype to nofile for ghostty scrollback and screen files in Neovide"
+)
 -- There are other autocommands created by 'mini.basics'. See 'plugin/30_mini.lua'.
 
 -- Diagnostics ================================================================
