@@ -75,7 +75,8 @@ now(function()
   -- Set up to not prefer extension-based icon for some extensions
   local ext3_blocklist = { scm = true, txt = true, yml = true }
   local ext4_blocklist = { json = true, yaml = true }
-  require("mini.icons").setup({
+  local mnic = require("mini.icons")
+  mnic.setup({
     use_file_extension = function(ext, _)
       return not (ext3_blocklist[ext:sub(-3)] or ext4_blocklist[ext:sub(-4)])
     end,
@@ -83,10 +84,10 @@ now(function()
 
   -- Mock 'nvim-tree/nvim-web-devicons' for plugins without 'mini.icons' support.
   -- Not needed for 'mini.nvim' or MiniMax, but might be useful for others.
-  later(MiniIcons.mock_nvim_web_devicons)
+  later(mnic.mock_nvim_web_devicons)
 
   -- Add LSP kind icons. Useful for 'mini.completion'.
-  later(MiniIcons.tweak_lsp_kind)
+  later(mnic.tweak_lsp_kind)
 end)
 
 -- Notifications provider. Shows all kinds of notifications in the upper right
@@ -182,13 +183,14 @@ now_if_args(function()
     filtersort = "fuzzy",
     kind_priority = { Text = -1, Snippet = 99 },
   }
+  local mncpt = require("mini.completion")
   local process_items = function(items, base)
-    local prioritized = MiniCompletion.default_process_items(items, base, process_items_opts)
+    local prioritized = mncpt.default_process_items(items, base, process_items_opts)
 
     -- Slice the final table to reduce overflowing the popup menu
     return vim.list_slice(prioritized, 1, 20)
   end
-  require("mini.completion").setup({
+  mncpt.setup({
     lsp_completion = {
       -- Without this config autocompletion is set up through `:h 'completefunc'`.
       -- Although not needed, setting up through `:h 'omnifunc'` is cleaner
@@ -207,7 +209,7 @@ now_if_args(function()
 
   -- Advertise to servers that Neovim now supports certain set of completion and
   -- signature features through 'mini.completion'.
-  vim.lsp.config("*", { capabilities = MiniCompletion.get_lsp_capabilities() })
+  vim.lsp.config("*", { capabilities = mncpt.get_lsp_capabilities() })
 end)
 
 -- Navigate and manipulate file system
@@ -241,16 +243,17 @@ end)
 -- - `:h MiniFiles-examples` - examples of common setups
 now_if_args(function()
   -- Enable directory/file preview
-  require("mini.files").setup({ windows = { preview = true } })
+  local mnf = require("mini.files")
+  mnf.setup({ windows = { preview = true } })
 
   -- Add common bookmarks for every explorer. Example usage inside explorer:
   -- - `'c` to navigate into your config directory
   -- - `g?` to see available bookmarks
   local add_marks = function()
-    MiniFiles.set_bookmark("c", vim.fn.stdpath("config"), { desc = "Config" })
+    mnf.set_bookmark("c", vim.fn.stdpath("config"), { desc = "Config" })
     local vimpack_plugins = vim.fn.stdpath("data") .. "/site/pack/core/opt"
-    MiniFiles.set_bookmark("p", vimpack_plugins, { desc = "Plugins" })
-    MiniFiles.set_bookmark("w", vim.fn.getcwd, { desc = "Working directory" })
+    mnf.set_bookmark("p", vimpack_plugins, { desc = "Plugins" })
+    mnf.set_bookmark("w", vim.fn.getcwd, { desc = "Working directory" })
   end
   Config.new_autocmd("User", "MiniFilesExplorerOpen", add_marks, "Add bookmarks")
 end)
@@ -264,20 +267,21 @@ end)
 --   function `f` 100 times and report statistical summary of execution times
 now_if_args(function()
   -- Makes `:h MiniMisc.put()` and `:h MiniMisc.put_text()` public
-  require("mini.misc").setup()
+  local mnm = require("mini.misc")
+  mnm.setup()
 
   -- Change current working directory based on the current file path. It
   -- searches up the file tree until the first root marker ('.git' or 'Makefile')
   -- and sets their parent directory as a current directory.
   -- This is helpful when simultaneously dealing with files from several projects.
-  MiniMisc.setup_auto_root()
+  mnm.setup_auto_root()
 
   -- Restore latest cursor position on file open
-  MiniMisc.setup_restore_cursor()
+  mnm.setup_restore_cursor()
 
   -- Synchronize terminal emulator background with Neovim's background to remove
   -- possibly different color padding around Neovim instance
-  MiniMisc.setup_termbg_sync()
+  mnm.setup_termbg_sync()
 end)
 
 -- Step two ===================================================================
@@ -333,24 +337,36 @@ later(function()
           return {}
         end
 
-        -- Look for BOTH standard string expressions and multi-line indented expressions
-        local query_str = "([ (string_expression) (indented_string_expression) ] @str)"
-
         parser:for_each_tree(function(tstree, lang_tree)
-          local ok_q, query = pcall(vim.treesitter.query.parse, lang_tree:lang(), query_str)
+          local lang = lang_tree:lang()
+
+          -- Look for BOTH standard string expressions and multi-line indented expressions
+          local query_str = "((string) @str)"
+          if lang == "nix" then
+            query_str = "([ (string_expression) (indented_string_expression) ] @str)"
+          elseif lang == "rust" or lang == "javascript" or lang == "typescript" then
+            query_str = "([ (string_literal) (template_string) ] @str)"
+          elseif lang == "go" then
+            query_str = "([ (string_literal) (raw_string_literal) ] @str)"
+          end
+
+          local ok_q, query = pcall(vim.treesitter.query.parse, lang, query_str)
           if ok_q and query then
             for _, node in query:iter_captures(tstree:root(), 0, 0, -1) do
               local sr, sc, er, ec = node:range()
-              local type = node:type()
+              local child_count = node:child_count()
 
               if ai_type == "i" then
-                -- Calculate how many characters to strip off based on the quote type
-                -- Double quotes (") need 1 character trim, Multi-line ('') needs 2 characters trim
-                local trim = (type == "indented_string_expression") and 2 or 1
+                -- INSIDE MODE (viq)
+                local first_child = node:child(0)
+                local last_child = node:child(child_count - 1)
+
+                local _, _, f_er, f_ec = first_child:range()
+                local l_sr, l_sc, _, _ = last_child:range()
 
                 table.insert(result, {
-                  from = { line = sr + 1, col = sc + 1 + trim },
-                  to = { line = er + 1, col = ec - trim },
+                  from = { line = f_er + 1, col = f_ec + 1 },
+                  to = { line = l_sr + 1, col = l_sc },
                 })
               else
                 -- AROUND MODE (vaq / g]q / g[q): Target the full outer dimensions safely
@@ -365,7 +381,6 @@ later(function()
         return result
       end,
 
-      -- DEDICATED SHELL HEREDOC TEXT OBJECT ('h')
       h = function(ai_type)
         local result = {}
         local ok, parser = pcall(vim.treesitter.get_parser, 0)
@@ -428,6 +443,70 @@ later(function()
     -- Number of lines within which textobject is searched
     n_lines = 200,
   })
+
+  -- Minimalist Language Injection (API Compliant Way)
+  vim.api.nvim_create_user_command("InjectLanguage", function()
+    -- Anchor onto the precise string node sitting directly under your cursor
+    local node = vim.treesitter.get_node()
+    while node and node:type() ~= "string_expression" and node:type() ~= "indented_string_expression" do
+      node = node:parent()
+    end
+
+    if not node then
+      vim.notify("Cursor must be inside a string or heredoc block", vim.log.levels.WARN)
+      return
+    end
+
+    local languages = { "bash", "lua", "javascript", "json", "python", "yaml" }
+
+    vim.ui.select(languages, { prompt = "Inject Language:" }, function(choice)
+      if not choice then
+        return
+      end
+
+      -- Fetch the exact line boundaries of your current string node
+      local start_row, _, end_row, _ = node:range()
+
+      -- Convert 0-indexed row ranges to 1-indexed human rows for the query filter
+      local from_line = start_row + 1
+      local to_line = end_row + 1
+
+      -- BUILD THE COMPLIANT QUERY
+      -- We define a rule that forces any string_fragment inside this specific line range
+      -- to be parsed as your chosen language, while ignoring nested (interpolation) blocks!
+      local query_string = string.format(
+        [[
+      ([
+        (string_expression (string_fragment) @injection.content)
+        (indented_string_expression (string_fragment) @injection.content)
+      ]
+      (#set! injection.language "%s")
+      (#set! injection.combined)
+      (#range! @injection.content %d 0 %d 0))
+    ]],
+        choice,
+        from_line,
+        to_line
+      )
+
+      -- Inject the query directly into the active buffer context safely
+      -- This overrides runtime files without touching private methods
+      local ok, err = pcall(vim.treesitter.query.set, "nix", "injections", query_string)
+
+      if ok then
+        -- Restart the treesitter highlighter for this buffer to apply changes instantly
+        vim.treesitter.stop(0)
+        vim.treesitter.start(0, "nix")
+        vim.cmd("edit!") -- Fast redraw
+        vim.notify(
+          "Successfully injected " .. choice .. " into lines " .. from_line .. "-" .. to_line,
+          vim.log.levels.INFO
+        )
+      else
+        vim.notify("Injection failed: " .. tostring(err), vim.log.levels.ERROR)
+      end
+    end)
+  end, {})
 end)
 
 -- Align text interactively. Example usage:
@@ -618,7 +697,7 @@ end)
 -- - `:h MiniHipatterns-examples` - examples of common setups
 later(function()
   local hipatterns = require("mini.hipatterns")
-  local hi_words = MiniExtra.gen_highlighter.words
+  local hi_words = require("mini.extra").gen_highlighter.words
   hipatterns.setup({
     highlighters = {
       -- Highlight a fixed set of common words. Will be highlighted in any place,
@@ -683,21 +762,22 @@ end)
 -- - `:h MiniKeymap.map_multistep()` - map multi-step action
 -- - `:h MiniKeymap.map_combo()` - map combo
 later(function()
-  require("mini.keymap").setup()
+  local mnkm = require("mini.keymap")
+  mnkm.setup()
   -- Navigate 'mini.completion' menu with `<Tab>` /  `<S-Tab>`
-  MiniKeymap.map_multistep("i", "<Tab>", {
+  mnkm.map_multistep("i", "<Tab>", {
     "pmenu_next",
     "minisnippets_next",
   })
-  MiniKeymap.map_multistep("i", "<S-Tab>", {
+  mnkm.map_multistep("i", "<S-Tab>", {
     "pmenu_prev",
     "minisnippets_prev",
   })
   -- On `<CR>` try to accept current completion item, fall back to accounting
   -- for pairs from 'mini.pairs'
-  MiniKeymap.map_multistep("i", "<CR>", { "pmenu_accept", "minipairs_cr" })
+  mnkm.map_multistep("i", "<CR>", { "pmenu_accept", "minipairs_cr" })
   -- On `<BS>` just try to account for pairs from 'mini.pairs'
-  MiniKeymap.map_multistep("i", "<BS>", { "minipairs_bs" })
+  mnkm.map_multistep("i", "<BS>", { "minipairs_bs" })
 end)
 
 -- Window with text overview. It is displayed on the right hand side. Can be used

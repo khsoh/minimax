@@ -134,7 +134,7 @@ now_if_args(function()
     javascript = { "prettier_project", "biome", stop_after_first = true },
     typescript = { "prettier_project", "biome", stop_after_first = true },
     lua = { "stylua" },
-    nix = { "nixfmt" },
+    nix = { "injected", "nixfmt" },
     markdown = { "prettier_global" },
     python = { "ruff_format" },
 
