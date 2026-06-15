@@ -136,11 +136,24 @@ now_if_args(function()
     lua = { "stylua" },
     nix = { "nixfmt" },
     markdown = { "prettier_global" },
+    python = { "ruff_format" },
+
+    ---- NOTE: conform has been setup with default_format_opts.lsp_format = "fallback"
+    --     so that LSP will be called as formatter if none is declared in this
+    --     table.  The following filetypes will use LSP as formatter:
+    --      = bash/zsh files: Fallback to bashls which calls shfmt automatically as a formatter
+    --      = c/cpp files
+    --      = powershell files
+    --      = go files
+    --      = rust files
+    --      = zig files
+    --      = XML files
   }
   local linters_by_ft = {
     json = { "biomejs" },
     javascript = { "biomejs" },
     typescript = { "biomejs" },
+    python = { "ruff" },
   }
   local lint = require("lint")
 
@@ -242,7 +255,7 @@ now_if_args(function()
 
   -- Setup Linters
   lint.linters_by_ft = linters_by_ft
-  Config.new_autocmd("BufWritePost", nil, function()
+  Config.new_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, nil, function()
     lint.try_lint()
   end)
 end)
