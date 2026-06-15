@@ -315,12 +315,100 @@ later(function()
     -- 'mini.ai' can be extended with custom textobjects
     custom_textobjects = {
       -- Make `aB` / `iB` act on around/inside whole *b*uffer
-      B = MiniExtra.gen_ai_spec.buffer(),
+      B = require("mini.extra").gen_ai_spec.buffer(),
+
       -- For more complicated textobjects that require structural awareness,
       -- use tree-sitter. This example makes `aF`/`iF` mean around/inside function
       -- definition (not call). See `:h MiniAi.gen_spec.treesitter()` for details.
-      F = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
-      C = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }),
+      F = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }, { use_nvim_treesitter = true }),
+      C = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }, { use_nvim_treesitter = true }),
+
+      -- FIXED QUOTES: Custom Inline Tree-sitter Parser
+      -- Bypasses broken external files by leveraging your working parser directly!
+      -- Handles escaped quotes and multiline quotes
+      q = function(ai_type)
+        local result = {}
+        local ok, parser = pcall(vim.treesitter.get_parser, 0)
+        if not ok or not parser then
+          return {}
+        end
+
+        -- Look for BOTH standard string expressions and multi-line indented expressions
+        local query_str = "([ (string_expression) (indented_string_expression) ] @str)"
+
+        parser:for_each_tree(function(tstree, lang_tree)
+          local ok_q, query = pcall(vim.treesitter.query.parse, lang_tree:lang(), query_str)
+          if ok_q and query then
+            for _, node in query:iter_captures(tstree:root(), 0, 0, -1) do
+              local sr, sc, er, ec = node:range()
+              local type = node:type()
+
+              if ai_type == "i" then
+                -- Calculate how many characters to strip off based on the quote type
+                -- Double quotes (") need 1 character trim, Multi-line ('') needs 2 characters trim
+                local trim = (type == "indented_string_expression") and 2 or 1
+
+                table.insert(result, {
+                  from = { line = sr + 1, col = sc + 1 + trim },
+                  to = { line = er + 1, col = ec - trim },
+                })
+              else
+                -- AROUND MODE (vaq / g]q / g[q): Target the full outer dimensions safely
+                table.insert(result, {
+                  from = { line = sr + 1, col = sc + 1 },
+                  to = { line = er + 1, col = ec },
+                })
+              end
+            end
+          end
+        end)
+        return result
+      end,
+
+      -- DEDICATED SHELL HEREDOC TEXT OBJECT ('h')
+      h = function(ai_type)
+        local result = {}
+        local ok, parser = pcall(vim.treesitter.get_parser, 0)
+        if not ok or not parser then
+          return {}
+        end
+
+        -- Strictly query for Shell Script heredoc bodies
+        local query_str = "((heredoc_body) @str)"
+
+        parser:for_each_tree(function(tstree, lang_tree)
+          local ok_q, query = pcall(vim.treesitter.query.parse, lang_tree:lang(), query_str)
+          if ok_q and query then
+            for _, node in query:iter_captures(tstree:root(), 0, 0, -1) do
+              if ai_type == "i" then
+                -- INSIDE MODE (vih): Grab only the text lines inside the body
+                local sr, sc, er, ec = node:range()
+                table.insert(result, {
+                  from = { line = sr + 1, col = sc + 1 },
+                  to = { line = er + 1, col = ec },
+                })
+              else
+                -- AROUND MODE (vah / g]h / g[h): Expand bounds to capture the sibling wrappers
+                local start_node = node:prev_sibling()
+                local end_node = node:next_sibling()
+
+                -- Fall back to the body boundaries if siblings aren't resolved yet
+                local first_node = (start_node and start_node:type() == "heredoc_start") and start_node or node
+                local last_node = (end_node and end_node:type() == "heredoc_end") and end_node or node
+
+                local sr, sc, _, _ = first_node:range()
+                local _, _, er, ec = last_node:range()
+
+                table.insert(result, {
+                  from = { line = sr + 1, col = sc + 1 },
+                  to = { line = er + 1, col = ec },
+                })
+              end
+            end
+          end
+        end)
+        return result
+      end,
 
       -- loop and conditional objects
       o = ai.gen_spec.treesitter({
@@ -340,15 +428,6 @@ later(function()
     -- Number of lines within which textobject is searched
     n_lines = 200,
   })
-
-  -- Define your navigation maps right after
-  vim.keymap.set("n", "]a", function()
-    require("mini.ai").move_cursor("left", "a", "a", { search_method = "next" })
-  end, { desc = "Jump to next arg" })
-
-  vim.keymap.set("n", "[a", function()
-    require("mini.ai").move_cursor("left", "a", "a", { search_method = "prev" })
-  end, { desc = "Jump to prev arg" })
 end)
 
 -- Align text interactively. Example usage:
