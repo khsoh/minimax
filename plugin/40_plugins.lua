@@ -56,8 +56,23 @@ now_if_args(function()
       "bash",
       "zsh",
       "javascript",
+      "applescript",
     },
     auto_install = true,
+
+    languages = {
+      applescript = {
+        install_info = {
+          -- The exact GitHub URL the manager will download:
+          url = "https://github.com/waddie/tree-sitter-applescript",
+          files = { "src/parser.c" },
+          branch = "main",
+          use_repo_queries = true,
+        },
+
+        filetype = "applescript",
+      },
+    },
   })
   -- 1. UNIFIED NATIVE TREESITTER SETTINGS
   Config.new_autocmd("FileType", "*", function(event)
