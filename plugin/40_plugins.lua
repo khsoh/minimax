@@ -49,6 +49,8 @@ now_if_args(function()
     -- Automatically build and installs the relevant binaries to parse syntax
     -- These are syntax parsers NOT LSPs
     ensure_installed = {
+      "vim",
+      "vimdoc",
       "nix",
       "lua",
       "bash",
