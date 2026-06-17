@@ -13,7 +13,7 @@
       "src": "https://github.com/nvim-mini/mini.nvim"
     },
     "nvim-lint": {
-      "rev": "01c5926a4226c58f083c80868cf135111cfac515",
+      "rev": "1ba49820a3c29ba6ab1b2dd441a63b3822c4e39b",
       "src": "https://github.com/mfussenegger/nvim-lint"
     },
     "nvim-lspconfig": {
