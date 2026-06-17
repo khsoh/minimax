@@ -139,6 +139,7 @@ now_if_args(function()
     Config.gh("neovim/nvim-lspconfig"), -- DO NOT REMOVE: This is needed by vim.lsp.enable() to provide the background database
     Config.gh("stevearc/conform.nvim"),
     Config.gh("mfussenegger/nvim-lint"),
+    Config.gh("jmbuhr/otter.nvim"),
   })
 
   -- =============================================================================
@@ -275,6 +276,18 @@ now_if_args(function()
   Config.new_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, nil, function()
     lint.try_lint()
   end)
+
+  -- Setup otter
+  vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_augroup("OtterAutoActivate", { clear = true }),
+    -- Specify all host files where you want embedded language support
+    pattern = { "markdown", "bash", "zsh", "nix", "python", "go" },
+    callback = function()
+      -- Calling activate() with no arguments tells Otter to dynamically
+      -- scan and load ALL injected languages it finds via Tree-sitter!
+      require("otter").activate()
+    end,
+  })
 end)
 
 -- Snippets ===================================================================

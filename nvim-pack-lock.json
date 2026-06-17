@@ -24,6 +24,10 @@
       "rev": "851e865342e5a4cb1ae23d31caf6e991e1c99f1e",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter-textobjects"
     },
+    "otter.nvim": {
+      "rev": "d781eda3bc18dbc8677f9a24abdc705fb74e4428",
+      "src": "https://github.com/jmbuhr/otter.nvim"
+    },
     "peek.nvim": {
       "rev": "5820d937d5414baea5f586dc2a3d912a74636e5b",
       "src": "https://github.com/toppair/peek.nvim"
