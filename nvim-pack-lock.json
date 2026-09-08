@@ -5,7 +5,7 @@
       "src": "https://github.com/stevearc/conform.nvim"
     },
     "friendly-snippets": {
-      "rev": "6cd7280adead7f586db6fccbd15d2cac7e2188b9",
+      "rev": "1788814ddf833c803c482e50b0c96837b489c0ed",
       "src": "https://github.com/rafamadriz/friendly-snippets"
     },
     "mini.nvim": {
