@@ -324,8 +324,8 @@ later(function()
       -- For more complicated textobjects that require structural awareness,
       -- use tree-sitter. This example makes `aF`/`iF` mean around/inside function
       -- definition (not call). See `:h MiniAi.gen_spec.treesitter()` for details.
-      F = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }, { use_nvim_treesitter = true }),
-      C = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }, { use_nvim_treesitter = true }),
+      F = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
+      C = ai.gen_spec.treesitter({ a = "@class.outer", i = "@class.inner" }),
 
       -- FIXED QUOTES: Custom Inline Tree-sitter Parser
       -- Bypasses broken external files by leveraging your working parser directly!
@@ -429,7 +429,7 @@ later(function()
       o = ai.gen_spec.treesitter({
         a = { "@conditional.outer", "@loop.outer" },
         i = { "@conditional.inner", "@loop.inner" },
-      }, { use_nvim_treesitter = true }),
+      }),
     },
 
     -- 'mini.ai' by default mostly mimics built-in search behavior: first try
