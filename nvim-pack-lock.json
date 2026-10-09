@@ -9,7 +9,7 @@
       "src": "https://github.com/rafamadriz/friendly-snippets"
     },
     "mini.nvim": {
-      "rev": "fa9037326e9996381e34a14b6350e18168618532",
+      "rev": "0513ad9ada655a07af321c129b69dafaf9e63d80",
       "src": "https://github.com/nvim-mini/mini.nvim"
     },
     "nvim-lint": {
